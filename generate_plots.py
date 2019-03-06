@@ -1,4 +1,4 @@
-import sami2py
+import tirtil 
 import numpy as np
 import pickle
 import xarray as xr
