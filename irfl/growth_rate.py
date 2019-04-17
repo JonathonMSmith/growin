@@ -8,18 +8,16 @@ Author
 Jonathon Smith (JS), 20 Sep 2018, Goddard Space Flight Center (GSFC)
 -------------------------------------------------------------------------------
 """
-import numpy as np
 import math
 from datetime import datetime, timedelta
-#from pyhwm2014 import hwm14
-#import msise00
+import numpy as np
 import igrf12
 import xarray as xr
 
 """
 CONSTANTS
 m_e : electron mass in kg
-q_e : electron charge coulombs 
+q_e : electron charge coulombs
 m_i : ion/neut mass (amu)
 g_0 : gravity at earth's surface m/s**2
 R_e : (km) Earth's radius
@@ -63,10 +61,14 @@ class FluxTube():
         self.K = 0
 
 class FluxTubeCell():
-    
+    """one cell or bin of a flux tube from the sami model and all of its
+       attributes are stored in an object for easy reference and use
+       this includes all of the density values and the location coordinates
+       to specify this cell
+    """
     def __init__(self, sami_out, ftl, ft, iyd, d_time, d_str, t_step):
         lat, lat_2, lon, alt, alt_2 = ft_bin_loc(sami_out, ftl, ft)
-        mag, atmos, hwm = run_models(sami_out, lat, lon, alt, ftl, ft, 
+        mag, atmos, hwm = run_models(sami_out, lat, lon, alt, ftl, ft,
                                      d_str, t_step)
         denis = sami_out.deni[ftl, ft, :, t_step]
 
@@ -105,7 +107,7 @@ def format_dates(sami_out, t_step):
     d_str = d_time.strftime('%Y-%m-%d')
     return iyd, d_time, d_str
 
-def FT_length(alt_1, alt_2, lat_1, lat_2):
+def ft_length(alt_1, alt_2, lat_1, lat_2):
     """
     law of cosines for determining linear extent of flux tube (ft) bin
     alt_1 & 2 in km
@@ -114,8 +116,8 @@ def FT_length(alt_1, alt_2, lat_1, lat_2):
     delta_lat = (lat_2-lat_1) * math.pi / 180
     alt_1 += R_e
     alt_2 += R_e
-    lenkm = alt_1**2 + alt_2**2 - 2 * alt_1 * alt_2 * math.cos(delta_lat) 
-    return math.sqrt(lenkm) * 10**3 
+    lenkm = alt_1**2 + alt_2**2 - 2 * alt_1 * alt_2 * math.cos(delta_lat)
+    return math.sqrt(lenkm) * 10**3
 
 def nu_i(n_i, n_n, A):
     """
@@ -131,7 +133,7 @@ def nu_e(n_n, n_e, T_e):
     nu_e_i = (34 + 4.18 * math.log(T_e**3 / n_e)) * n_e * T_e**(-3/2)
     return nu_e_n + nu_e_i
 
-def g_e_L(sami_out, ft): 
+def g_e_L(sami_out, ft):
     """
     gravity at the bin altitude
     L is geocentric distance in earth radii
@@ -139,25 +141,25 @@ def g_e_L(sami_out, ft):
     """
     apex_alt = np.amax(sami_out.zalt[:, ft])
     L = (apex_alt + R_e) / R_e
-    return g_0 / L**2     
+    return g_0 / L**2
 
 
 def omega(B, particle):
     if particle == 'electron':
         return q_e * B / m_e
     else:
-        return q_e * B / (m_i[particle] * amu)    
+        return q_e * B / (m_i[particle] * amu)
 
 def sigma_tot(denis, n_n, n_e, B, A, T_e):
     """
-    inputs : 
+    inputs :
     ion densities from sami cm-3
     total neutral density cm-3
     total electron density cm-3
     magnetic field in Teslas
     A average neutral density in amus
     T_e electron temperature in Kelvin
-    output : 
+    output :
     total Pedersen conductivity at location in mho/m
     """
     sig_tot = 0
@@ -166,7 +168,7 @@ def sigma_tot(denis, n_n, n_e, B, A, T_e):
         if n_i > 0:
             k_i = omega(B, sami_enumerate[i]) / nu_i(n_i, n_n, A)
             sig_tot += n_i * k_i / (1 + k_i**2)
-    sig_tot += n_e * k_e / (1 + k_e**2) 
+    sig_tot += n_e * k_e / (1 + k_e**2)
     return 10**6 * sig_tot * q_e / B
 
 def get_n_n(nn):
@@ -175,7 +177,7 @@ def get_n_n(nn):
     neutral number densities are in m-3 so the must be converted to cm-3
     """
     species = []
-    n_n=0
+    n_n = 0
     for n in range(len(nn)):
         if nn[n] > 0:
             n_n += float(nn[n])
@@ -206,18 +208,14 @@ def calc_growth_rate(tube):
     return gamma
 
 def run_models(sami, lat, lon, alt, cell, flux_tube, d_str, t_step):
-    
-    #f107a = sami.MetaData['F10.7A']
-    #f107 = sami.MetaData['F10.7']
-    #sec = sami.ut[t_step] * 3600
     mag = igrf12.igrf(d_str, glat=lat, glon=lon, alt_km=alt)
-    atmos = sami.denn[cell, flux_tube, :, t_step] 
+    atmos = sami.denn[cell, flux_tube, :, t_step]
     hwm = sami.u[cell, flux_tube, t_step]
     return mag, atmos, hwm
 
-def eval_tubes(sami_out, exb, t_step = 0):
+def eval_tubes(sami_out, exb, t_step=0):
     """
-    calculate the flux tube integrated quantities for each flux tube needed for 
+    calculate the flux tube integrated quantities for each flux tube needed for
     the growth rate calculation
     inputs:
     sami_out : sami2py object
@@ -226,7 +224,7 @@ def eval_tubes(sami_out, exb, t_step = 0):
     iyd, d_time, d_str = format_dates(sami_out, t_step)
     nz = np.shape(sami_out.glat)[0]
     nf = np.shape(sami_out.glat)[1]
-    
+
     tube_list = []
     #print('progress %:')
     for ft in range(nf):
@@ -254,7 +252,7 @@ def eval_tubes(sami_out, exb, t_step = 0):
         tube_list.append(tube)
     return tube_list, d_time
 
-def rt_growth_rate(sami_out, exb, t_step = 0):
+def rt_growth_rate(sami_out, exb, t_step=0):
     """
     calculate flux tube integrated electron density altitude gradient
     and flux tube integrated growth rate
@@ -273,12 +271,12 @@ def rt_growth_rate(sami_out, exb, t_step = 0):
             N_e_1 = tube_list[ft].N
             N_e_2 = tube_list[ft + 1].N
 
-        dN_e = (N_e_2 - N_e_1) 
+        dN_e = (N_e_2 - N_e_1)
         dh = (h2 - h1) * 10**3
         K = (1 / N_e_1) * (dN_e / dh)
         tube_list[ft].K = K
 
-        gam = calc_growth_rate(tube_list[ft])        
+        gam = calc_growth_rate(tube_list[ft])
         tube_list[ft].gamma = gam
     return tube_list, d_time
 
@@ -291,7 +289,7 @@ def exb_calc(coefficients, ve01, t):
               + (b * np.sin((i+1) * t * np.pi / 12)))
     return exb
 
-def run_growth_calc(sami, coefficients = None, ve01 = 0):
+def run_growth_calc(sami, coefficients=None, ve01=0):
     ''' runs the growth rate calculation for a sami2 run
         Parameters:
         sami: SAMI2py model object
@@ -301,7 +299,7 @@ def run_growth_calc(sami, coefficients = None, ve01 = 0):
     time_steps = len(sami.ut)
     rtgr_sets = []
     if coefficients is None:
-        coefficients = np.zeros((10,2))   
+        coefficients = np.zeros((10, 2))
     lon0 = sami.lon0
     for i in range(time_steps):
         t = sami.ut[i]
@@ -309,8 +307,8 @@ def run_growth_calc(sami, coefficients = None, ve01 = 0):
         lt = t + lon0/15
         lt = lt % 24
         exb = exb_calc(coefficients, ve01, lt)
-        tube_list, t = rt_growth_rate(sami_out=sami, exb = exb, t_step = i)
-        tubes=[]
+        tube_list, t = rt_growth_rate(sami_out=sami, exb=exb, t_step=i)
+        tubes = []
         tube_dict = {}
         for tube in tube_list:
             tubes.append(tube.__dict__)
