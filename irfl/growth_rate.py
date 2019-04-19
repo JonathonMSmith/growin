@@ -73,7 +73,7 @@ class FluxTubeCell():
         denis = sami_out.deni[ftl, ft, :, t_step]
 
         self.alt = alt
-        self.len = FT_length(alt, alt_2, lat, lat_2)
+        self.len = ft_length(alt, alt_2, lat, lat_2)
         self.n_n, species = get_n_n(atmos)
         self.n_e = np.sum(denis)
         self.t_e = sami_out.te[ftl, ft, t_step]

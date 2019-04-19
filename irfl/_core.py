@@ -57,7 +57,7 @@ def get_drifts(start=2008, stop=2014, clean_level='none'):
     path = irfl.utils.generate_path('drift', year=start, end_year=stop)
     drift_f_name = os.path.join(path, clean_level+'.p')
     if os.path.isfile(drift_f_name):
-        drift_inst = pickle.load(open(drift_f_name, 'r'))
+        drift_inst = pickle.load(open(drift_f_name, 'rb'))
     else:
         drift_inst = irfl.DriftInstrument(platform='cnofs', name='ivm',
                                           clean_level=clean_level)
@@ -93,7 +93,7 @@ def get_growth_rates_survey(start=2008, stop=2014, clean_level='none'):
                                       longitude=lon).values
                 sami2py.run_model(day=day, year=year, lon=lon_deg, fejer=False,
                                   ExB_drifts=exb_drifts, ve01=ve01, outn=True)
-                sami = sami2py.model(tag='test', day=day,
+                sami = sami2py.Model(tag='test', day=day,
                                      year=year, lon=lon_deg, outn=True)
                 sami.gamma = irfl.growth_rate.run_growth_calc(sami,
                                                               exb_drifts, ve01)

@@ -15,7 +15,7 @@ def plot_drifts(ivm, year, season, lon):
                               slt=float(local_time))
         coeffs = vals.coefficients
         ve01 = vals.ve01
-        fit_drift.append(irfl.growth_rate.exb_calc(coeffs.values[0],
+        fit_drift.append(irfl.growth_rate.exb_calc(coeffs,
                                                    float(ve01),
                                                    float(local_time)))
     local_time = ivm.drifts.slt.values
