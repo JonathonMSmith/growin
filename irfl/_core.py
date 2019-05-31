@@ -52,10 +52,11 @@ def filter_ivm(inst):
     idx, = np.where((inst['Ni'] >= 3000) & (inst['apex_altitude'] <= 550))
     inst.data = inst.data.iloc[idx]
 
-def get_drifts(start=2008, stop=2014, clean_level='none'):
+def get_drifts(start=2008, stop=2014, clean_level='none',
+               drift_key='ionVelocityZ'):
     """create/load the instrument and obtain the drifts then save the drifts"""
     path = irfl.utils.generate_path('drift', year=start, end_year=stop)
-    drift_f_name = os.path.join(path, clean_level+'.p')
+    drift_f_name = os.path.join(path, clean_level+'_'+drift_key+'.p')
     if os.path.isfile(drift_f_name):
         drift_inst = pickle.load(open(drift_f_name, 'rb'))
     else:
@@ -63,45 +64,66 @@ def get_drifts(start=2008, stop=2014, clean_level='none'):
                                           clean_level=clean_level)
         drift_inst.custom.add(drift_fix, 'modify')
         drift_inst.custom.add(shift_longitude, 'modify')
-        drift_inst.custom.add(filter_ivm, 'modify')
-        drift_inst.exb_fourier_fit(drift_key='ionVelocityZ',
+#        drift_inst.custom.add(filter_ivm, 'modify')
+        drift_inst.exb_fourier_fit(drift_key=drift_key,
                                    lon_bins=LONGITUDE_BOUNDS,
                                    season_bins=SEASON_BOUNDS,
                                    season_names=SEASON_NAMES,
                                    zone_labels=LON_SECTOR_NAMES,
                                    start_year=start, stop_year=stop)
-        path = irfl.utils.generate_path('drift', year=start, end_year=stop)
         if not os.path.isdir(path):
             os.makedirs(path)
-        drift_filename = os.path.join(path, clean_level+'.p')
-        pickle.dump(drift_inst, open(drift_filename, 'wb'))
+        pickle.dump(drift_inst, open(drift_f_name, 'wb'))
     return drift_inst
 
+def get_growth(tag, day, year, lon, exb_drifts, ve01=0):
+
+    path = irfl.utils.generate_path('growth', year=year,
+                                    lon=lon, day=day)
+    sami_filename = os.path.join(path, 'sami'+tag+'.p')
+
+    if os.path.isfile(sami_filename):
+        sami = pickle.load(open(sami_filename, 'rb'))
+        return sami
+    sami2py.run_model(tag=tag, day=day, year=year, lon=lon, fejer=False,
+                      ExB_drifts=exb_drifts, ve01=0, outn=True)
+    sami = sami2py.Model(tag=tag, day=day,
+                         year=year, lon=lon, outn=True)
+    sami.gamma = irfl.growth_rate.run_growth_calc(sami,
+                                                  exb_drifts)
+    if not os.path.isdir(path):
+        os.makedirs(path)
+    pickle.dump(sami, open(sami_filename, 'wb'))
+    return sami
+
+
+
 # run the model for each year and season and compute the growth rate and plot
-def get_growth_rates_survey(start=2008, stop=2014, clean_level='none'):
+def get_growth_rates_survey(start=2008, stop=2014, clean_level='none',
+                            drift_key='ionVelocityZ'):
     """calculate the growth rate from the sami model using computed drifts"""
-    drift_inst = get_drifts(start=start, stop=stop, clean_level=clean_level)
+    drift_inst = get_drifts(start=start, stop=stop, clean_level=clean_level,
+                            drift_key=drift_key)
+
+    drift = drift_inst.drifts
     for year in range(start, stop):
         for season in SEASON_NAMES:
             day = SEASON_DAYS[season]
-            for lon in LON_SECTOR_NAMES:
-                lon_deg = MODEL_SECTORS[lon]
-                drift = drift_inst.drifts
+            for zone in LON_SECTOR_NAMES:
+                lon = MODEL_SECTORS[zone]
                 exb_drifts = drift.coefficients.sel(year=year, season=season,
-                                                    longitude=lon).values
+                                                    longitude=zone).values
                 ve01 = drift.ve01.sel(year=year, season=season,
-                                      longitude=lon).values
-                sami2py.run_model(day=day, year=year, lon=lon_deg, fejer=False,
-                                  ExB_drifts=exb_drifts, ve01=ve01, outn=True)
-                sami = sami2py.Model(tag='test', day=day,
-                                     year=year, lon=lon_deg, outn=True)
-                sami.gamma = irfl.growth_rate.run_growth_calc(sami,
-                                                              exb_drifts, ve01)
-                path = irfl.utils.generate_path('growth', year=year,
-                                                lon=lon_deg, day=day)
-                if not os.path.isdir(path):
-                    os.makedirs(path)
-                sami_filename = os.path.join(path, season+'.p')
-                pickle.dump(sami, open(sami_filename, 'wb'))
-                irfl.generate_plots.plot_drifts(drift_inst, year, season, lon)
-                irfl.generate_plots.plot_growth_term(sami, season)
+                                      longitude=zone).values
+                sami = get_growth(tag=clean_level, day=day, year=year, lon=lon,
+                                  exb_drifts=exb_drifts)
+                irfl.generate_plots.plot_drifts(drift_inst, year=year,
+                                                season=season, zone=zone,
+                                                day=day, lon=lon)
+                irfl.generate_plots.plot_growth_term(sami, season, drift=True)
+                irfl.generate_plots.plot_growth_term(sami, season, 'N',
+                                                     vmax=None)
+                irfl.generate_plots.plot_growth_term(sami, season, 'K',
+                                                     vmax=8*10**(-5))
+                irfl.generate_plots.plot_growth_term(sami, season, 'g_nu',
+                                                     vmax=20)
