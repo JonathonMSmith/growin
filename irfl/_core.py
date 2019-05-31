@@ -85,12 +85,17 @@ def get_growth(tag, day, year, lon, exb_drifts, ve01=0):
     if os.path.isfile(sami_filename):
         sami = pickle.load(open(sami_filename, 'rb'))
         return sami
-    sami2py.run_model(tag=tag, day=day, year=year, lon=lon, fejer=False,
-                      ExB_drifts=exb_drifts, ve01=0, outn=True)
+    if exb_drifts:
+        sami2py.run_model(tag=tag, day=day, year=year, lon=lon, fejer=False,
+                          ExB_drifts=exb_drifts, ve01=0, outn=True)
+    else:
+        sami2py.run_model(tag=tag, day=day, year=year, lon=lon, fejer=True,
+                          outn=True)
+
     sami = sami2py.Model(tag=tag, day=day,
                          year=year, lon=lon, outn=True)
-    sami.gamma = irfl.growth_rate.run_growth_calc(sami,
-                                                  exb_drifts)
+    sami.gamma = irfl.growth_rate.run_growth_calc(sami, exb_drifts)
+
     if not os.path.isdir(path):
         os.makedirs(path)
     pickle.dump(sami, open(sami_filename, 'wb'))
@@ -102,24 +107,32 @@ def get_growth(tag, day, year, lon, exb_drifts, ve01=0):
 def get_growth_rates_survey(start=2008, stop=2014, clean_level='none',
                             drift_key='ionVelocityZ'):
     """calculate the growth rate from the sami model using computed drifts"""
-    drift_inst = get_drifts(start=start, stop=stop, clean_level=clean_level,
-                            drift_key=drift_key)
+    if drift_key != 'Fejer':
+        drift_inst = get_drifts(start=start, stop=stop, 
+                                clean_level=clean_level, drift_key=drift_key)
+        drift = drift_inst.drifts
+    else:
+        drift = None
 
-    drift = drift_inst.drifts
     for year in range(start, stop):
         for season in SEASON_NAMES:
             day = SEASON_DAYS[season]
             for zone in LON_SECTOR_NAMES:
                 lon = MODEL_SECTORS[zone]
-                exb_drifts = drift.coefficients.sel(year=year, season=season,
-                                                    longitude=zone).values
-                ve01 = drift.ve01.sel(year=year, season=season,
-                                      longitude=zone).values
+                if drift:
+                    exb_drifts = drift.coefficients.sel(year=year, 
+                                                        season=season,
+                                                        longitude=zone).values
+                    ve01 = drift.ve01.sel(year=year, season=season,
+                                          longitude=zone).values
+                    irfl.generate_plots.plot_drifts(drift_inst, year=year,
+                                                    season=season, zone=zone,
+                                                    day=day, lon=lon)
+                else:
+                    exb_drifts = None
+
                 sami = get_growth(tag=clean_level, day=day, year=year, lon=lon,
                                   exb_drifts=exb_drifts)
-                irfl.generate_plots.plot_drifts(drift_inst, year=year,
-                                                season=season, zone=zone,
-                                                day=day, lon=lon)
                 irfl.generate_plots.plot_growth_term(sami, season, drift=True)
                 irfl.generate_plots.plot_growth_term(sami, season, 'N',
                                                      vmax=None)
