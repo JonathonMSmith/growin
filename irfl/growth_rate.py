@@ -299,7 +299,7 @@ def run_growth_calc(sami, coefficients=None, ve01=0):
     time_steps = len(sami.ut)
     rtgr_sets = []
     if coefficients is None:
-        coefficients = sami.exb
+        coefficients = np.zeros((10,2))
     lon0 = sami.lon0
     for i in range(time_steps):
         t = sami.ut[i]

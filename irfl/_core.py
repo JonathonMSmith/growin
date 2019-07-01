@@ -14,6 +14,7 @@ year,10,31
 """
 import os
 import pickle
+import datetime
 import numpy as np
 import xarray as xr
 import sami2py
@@ -85,7 +86,7 @@ def get_growth(tag, day, year, lon, exb_drifts, ve01=0):
     if os.path.isfile(sami_filename):
         sami = pickle.load(open(sami_filename, 'rb'))
         return sami
-    if exb_drifts:
+    if exb_drifts is not None:
         sami2py.run_model(tag=tag, day=day, year=year, lon=lon, fejer=False,
                           ExB_drifts=exb_drifts, ve01=0, outn=True)
     else:
@@ -101,7 +102,23 @@ def get_growth(tag, day, year, lon, exb_drifts, ve01=0):
     pickle.dump(sami, open(sami_filename, 'wb'))
     return sami
 
-
+def fit_fejer(year, day, lon):
+    import pyglow
+    dt = datetime.timedelta(day-1)
+    slt_step = np.linspace(0, 23.5, 48)
+    ut_step = slt_step - lon/15
+    ut_step = [t+24 for t in ut_step if t < 0]
+    drifts = []
+    for t in ut_step:
+        hr = int(t)
+        mn = int(60 * ((t)%1))
+        dn = datetime.datetime(year, 1, 1, hr, mn) + dt
+        pt = pyglow.Point(dn, 0, lon, 250)
+        pt.run_iri()
+        drifts.append(pt.exb)
+    drifts = np.array(drifts)
+    ve01, exb_drifts = irfl.fourier_exb.fourier_fit(slt_step, drifts, 10)
+    return exb_drifts
 
 # run the model for each year and season and compute the growth rate and plot
 def get_growth_rates_survey(start=2008, stop=2014, clean_level='none',
@@ -129,7 +146,7 @@ def get_growth_rates_survey(start=2008, stop=2014, clean_level='none',
                                                     season=season, zone=zone,
                                                     day=day, lon=lon)
                 else:
-                    exb_drifts = None
+                    exb_drifts = fit_fejer(year, day, lon)
 
                 sami = get_growth(tag=clean_level, day=day, year=year, lon=lon,
                                   exb_drifts=exb_drifts)

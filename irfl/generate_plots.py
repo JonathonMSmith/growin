@@ -158,7 +158,7 @@ def plot_growth_term(sami, season, term='gamma', vmin=0, vmax=8*10**(-4),
     file_path = irfl.utils.generate_path('growth', lon=sami.lon0,
                                          year=sami.year,
                                          day=sami.day)
-    filename = season + '_' + term + '.png'
+    filename = season + '_' + term + '_' + sami.tag + '.png'
     full_name = os.path.join(file_path, filename)
     fig.savefig(full_name, dpi=100)
     plt.close()
