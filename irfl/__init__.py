@@ -50,7 +50,7 @@ with open(os.path.join(irfl_dir, 'test_data_path.txt'), 'r') as f:
 
 # import main functions
 try:
-    from irfl import _core, utils, generate_plots, fourier_exb, growth_rate
+    from irfl import _core, utils, fourier_exb, growth_rate
     from irfl.fourier_exb import DriftInstrument
     from irfl._core import get_growth_rates_survey
 except ImportError as errstr:
