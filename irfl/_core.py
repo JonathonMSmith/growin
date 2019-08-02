@@ -44,6 +44,8 @@ def shift_local_time(inst):
 def shift_longitude(inst):
     """shift longitude values 15 degrees for longitude sector binning"""
     inst['glon'] += 15.
+    idx, = np.where(inst['glon'] > 360)
+    inst[idx, 'glon'] -= 360
 
 
 def drift_fix(inst):
@@ -58,7 +60,10 @@ def filter_ivm(inst):
 
 
 def get_drifts(start=2008, stop=2014, clean_level='none',
-               drift_key='ionVelocityZ'):
+               drift_key='ionVelocityZ', season_names=SEASON_NAMES,
+               season_bounds=SEASON_BOUNDS, zone_names=LON_SECTOR_NAMES,
+               zone_bounds=LONGITUDE_BOUNDS):
+
     """create/load the instrument and obtain the drifts then save the drifts"""
     path = irfl.utils.generate_path('drift', year=start, end_year=stop)
     drift_f_name = os.path.join(path, clean_level+'_'+drift_key+'.p')
@@ -71,10 +76,10 @@ def get_drifts(start=2008, stop=2014, clean_level='none',
         drift_inst.custom.add(shift_longitude, 'modify')
 #        drift_inst.custom.add(filter_ivm, 'modify')
         drift_inst.exb_fourier_fit(drift_key=drift_key,
-                                   lon_bins=LONGITUDE_BOUNDS,
-                                   season_bins=SEASON_BOUNDS,
-                                   season_names=SEASON_NAMES,
-                                   zone_labels=LON_SECTOR_NAMES,
+                                   lon_bins=zone_bounds,
+                                   season_bins=season_bounds,
+                                   season_names=season_names,
+                                   zone_labels=zone_names,
                                    start_year=start, stop_year=stop)
         if not os.path.isdir(path):
             os.makedirs(path)
@@ -144,23 +149,33 @@ def fit_fejer(year, day, lon):
 
 
 def get_growth_rates_survey(start=2008, stop=2014, clean_level='none',
-                            drift_key='ionVelocityZ'):
+                            drift_key='ionVelocityZ',
+                            season_names=SEASON_NAMES,
+                            season_bounds=SEASON_BOUNDS,
+                            season_days=SEASON_DAYS,
+                            zone_names=LON_SECTOR_NAMES,
+                            zone_bounds=LONGITUDE_BOUNDS,
+                            model_sectors=MODEL_SECTORS):
     """calculate the growth rate from the sami model using computed drifts
        run the model for each year and season
        compute the growth rate and plot"""
 
     if drift_key != 'Fejer':
         drift_inst = get_drifts(start=start, stop=stop,
-                                clean_level=clean_level, drift_key=drift_key)
+                                clean_level=clean_level, drift_key=drift_key,
+                                season_names=season_names,
+                                season_bounds=season_bounds,
+                                zone_bounds=zone_bounds,
+                                zone_names=zone_names)
         drift = drift_inst.drifts
     else:
         drift = None
 
     for year in range(start, stop):
-        for season in SEASON_NAMES:
-            day = SEASON_DAYS[season]
-            for zone in LON_SECTOR_NAMES:
-                lon = MODEL_SECTORS[zone]
+        for season in season_names:
+            day = season_days[season]
+            for zone in zone_names:
+                lon = model_sectors[zone]
                 if drift:
                     exb_drifts = drift.coefficients.sel(year=year,
                                                         season=season,
@@ -171,3 +186,4 @@ def get_growth_rates_survey(start=2008, stop=2014, clean_level='none',
                 tag = clean_level + '_' + drift_key
                 sami = get_growth(tag=tag, day=day, year=year, lon=lon,
                                   exb_drifts=exb_drifts)
+    return sami
