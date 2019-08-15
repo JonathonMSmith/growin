@@ -17,7 +17,7 @@ import pickle
 import datetime
 import numpy as np
 import sami2py
-import irfl
+import growin
 
 # default values to organize seasons and zones
 # months that bound each season
@@ -65,12 +65,12 @@ def get_drifts(start=2008, stop=2014, clean_level='none',
                zone_bounds=LONGITUDE_BOUNDS):
 
     """create/load the instrument and obtain the drifts then save the drifts"""
-    path = irfl.utils.generate_path('drift', year=start, end_year=stop)
+    path = growin.utils.generate_path('drift', year=start, end_year=stop)
     drift_f_name = os.path.join(path, clean_level+'_'+drift_key+'.p')
     if os.path.isfile(drift_f_name):
         drift_inst = pickle.load(open(drift_f_name, 'rb'))
     else:
-        drift_inst = irfl.DriftInstrument(platform='cnofs', name='ivm',
+        drift_inst = growin.DriftInstrument(platform='cnofs', name='ivm',
                                           clean_level=clean_level)
         drift_inst.custom.add(drift_fix, 'modify')
         drift_inst.custom.add(shift_longitude, 'modify')
@@ -93,7 +93,7 @@ def get_growth(tag, day, year, lon, exb_drifts, ve01=0):
         checks if there is an existing sami instrument with the appropriate tag
         and loads it. Otherwise it runs the growth rate calculation.
     '''
-    path = irfl.utils.generate_path('growth', year=year,
+    path = growin.utils.generate_path('growth', year=year,
                                     lon=lon, day=day)
     sami_filename = os.path.join(path, 'sami'+tag+'.p')
 
@@ -109,7 +109,7 @@ def get_growth(tag, day, year, lon, exb_drifts, ve01=0):
 
     sami = sami2py.Model(tag=tag, day=day,
                          year=year, lon=lon, outn=True)
-    sami.gamma = irfl.growth_rate.run_growth_calc(sami, exb_drifts)
+    sami.gamma = growin.growth_rate.run_growth_calc(sami, exb_drifts)
 
     if not os.path.isdir(path):
         os.makedirs(path)
@@ -144,7 +144,7 @@ def fit_fejer(year, day, lon):
         drifts.append(pt.exb)
     drifts = np.array(drifts)
     # compute the coefficients
-    ve01, exb_drifts = irfl.fourier_exb.fourier_fit(slt_step, drifts, 10)
+    ve01, exb_drifts = growin.fourier_exb.fourier_fit(slt_step, drifts, 10)
     return exb_drifts
 
 

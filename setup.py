@@ -15,26 +15,26 @@ def read(fname):
 
 # generate path for fortran model files
 here = path.abspath(path.dirname(__file__))
-test_data_path = path.join(here, 'irfl', 'tests', 'test_data')
+test_data_path = path.join(here, 'growin', 'tests', 'test_data')
 # get environment name to create virtual environment specific archives
 if 'CONDA_DEFAULT_ENV' in environ:
     env_name = environ['CONDA_DEFAULT_ENV']
 elif 'VIRTUAL_ENV' in environ:
     env_name = environ['VIRTUAL_ENV']
 
-file_path = path.join(path.expanduser('~'), '.irfl', env_name)
+file_path = path.join(path.expanduser('~'), '.growin', env_name)
 
 if not path.isdir(file_path):
     makedirs(file_path)
-    print(''.join(('Created .irfl directory in user home directory to',
+    print(''.join(('Created .growin directory in user home directory to',
                    'store settings.')))
 
 with open(path.join(file_path, 'test_data_path.txt'), 'w+') as f:
     f.write(test_data_path)
 
-setup(name='irfl',
+setup(name='growin',
       version='0.1a2',
-      url='gitlab.com/jklenzing/irfl',
+      url='gitlab.com/jklenzing/growin',
       author='Jeff Klenzing',
       author_email='jeffrey.klenzing@nasa.gov',
       description='Generate, read, and plot sami2 model runs',
@@ -54,5 +54,5 @@ setup(name='irfl',
       ],
       include_package_data=True,
       zip_safe=False,
-      test_suite='setup.irfl_test_suite',
+      test_suite='setup.growin_test_suite',
       )
