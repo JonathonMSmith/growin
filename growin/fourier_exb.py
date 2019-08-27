@@ -53,7 +53,7 @@ class DriftInstrument(pysat.Instrument):
         corresponding to the median drifts, their deviation, and the fourier
         curve fit for use in the SAMI2 model
     """
-    def get_drifts(self, start, stop, coords):
+    def exb_fourier_fit(self, start, stop, coords):
         """ This gets the median drifts and the coefficients and puts them in
             an xarray Dataset. The drifts are first obtained using the pysat
             function pysat.ssnl.avg.median2D and then the fits are performed
@@ -120,7 +120,7 @@ class DriftInstrument(pysat.Instrument):
         drift_arr = drift_arr.assign_coords(year=year_coord)
         return drift_arr
 
-    def exb_fourier_fit(self, drift_key=None, num_co=10,
+    def get_drifts(self, drift_key=None, num_co=10,
                         lon_bins=np.linspace(0, 360, 5, dtype=int),
                         slt_bins=np.linspace(0, 24, 49),
                         season_bins=[1, 3, 5, 7, 9, 11, 1],

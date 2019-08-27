@@ -75,7 +75,7 @@ def get_drifts(start=2008, stop=2014, clean_level='none',
         drift_inst.custom.add(drift_fix, 'modify')
         drift_inst.custom.add(shift_longitude, 'modify')
 #        drift_inst.custom.add(filter_ivm, 'modify')
-        drift_inst.exb_fourier_fit(drift_key=drift_key,
+        drift_inst.get_drifts(drift_key=drift_key,
                                    lon_bins=zone_bounds,
                                    season_bins=season_bounds,
                                    season_names=season_names,
