@@ -210,6 +210,7 @@ def calc_growth_rate(tube):
 def run_models(sami, lat, lon, alt, cell, flux_tube, d_str, t_step):
     mag = igrf12.igrf(d_str, glat=lat, glon=lon, alt_km=alt)
     atmos = sami.denn[cell, flux_tube, :, t_step]
+    #only the meridional component of wind is used as per Sultan1996
     hwm = sami.u[cell, flux_tube, t_step]
     return mag, atmos, hwm
 

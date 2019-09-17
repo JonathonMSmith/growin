@@ -1,16 +1,5 @@
 """functions and variables to run the requisite models and functions to
 calculate the drifts and and from them run the model and then compute the rtgr
-year-1,11,1     Dec Sol
-year,1,31
-
-year,2,1        Mar Eq
-year,4,30
-
-year,5,1        Jun Sol
-year,7,31
-
-year,8,1        Sep Eq
-year,10,31
 """
 import os
 import pickle
@@ -18,21 +7,6 @@ import datetime
 import numpy as np
 import sami2py
 import growin
-
-# default values to organize seasons and zones
-# months that bound each season
-SEASON_BOUNDS = np.array([11, 2, 5, 8, 11])
-SEASON_NAMES = ['DecSol', 'MarEq', 'JunSol', 'SepEq']
-# midpoint days for each season for sami
-SEASON_DAYS = {'DecSol': 355, 'MarEq': 80, 'JunSol': 155, 'SepEq': 266}
-
-# longitude regions shifted by +15 degrees for ease of binning
-LONGITUDE_BOUNDS = np.array([0, 75, 145, 300, 360])
-LON_SECTOR_NAMES = ['African', 'Indian', 'Pacific', 'South American']
-# midpoints from longitude_bounds, subtract 15 again for sami
-MODEL_SECTORS = {'African': 22, 'Indian': 95, 'Pacific': 207,
-                 'South American': 315}
-
 
 # custom functions for pysat instrument to modify the data for use here
 def shift_local_time(inst):
@@ -49,41 +23,62 @@ def shift_longitude(inst):
 
 
 def drift_fix(inst):
-    """in the cnofs data positive drifts are toward earth, so sign change"""
+    """in the cnofs data positive drifts are toward earth, so sign change
+       not needed for meridional drifts"""
     inst['ionVelocityZ'] *= -1
 
 
-def filter_ivm(inst):
-    """some simple critereon to filter the data"""
-    idx, = np.where((inst['Ni'] >= 3000) & (inst['apex_altitude'] <= 550))
-    inst.data = inst.data.iloc[idx]
+def get_drifts(start=2008, stop=2014, clean_level='none', drift_inst=None,
+               drift_key='ionVelocityZ', season_names: list = None,
+               season_bounds: list = None, zone_names: list = None,
+               zone_bounds: list = None):
 
+    """create/load the instrument and obtain the drifts then save the drifts
 
-def get_drifts(start=2008, stop=2014, clean_level='none',
-               drift_key='ionVelocityZ', season_names=SEASON_NAMES,
-               season_bounds=SEASON_BOUNDS, zone_names=LON_SECTOR_NAMES,
-               zone_bounds=LONGITUDE_BOUNDS):
-
-    """create/load the instrument and obtain the drifts then save the drifts"""
+       Parameters
+       ----------
+       start : (int)
+            start year of the survey
+       stop : (int)
+            stop year of the survey
+       clean_level : (string)
+            specify cleaning routine for pysat
+       drift_inst: (growin.fourier_exb.DriftInstrument)
+            drift instrument if different custom modifier functions are desired
+       drift_key : (int)
+            dictionary key for the pysat instrument drift values to use
+       season_names : (array-like of strings)
+            array-like containing the names of the specified seasons
+       season_bounds : (array-like of int or float)
+            array-like ocntaining the days that delineate the season bounds
+       zone_names : (array-like of strings)
+            array-like of stings specifying the names of longitude zones used
+       zone_bounds : (array-like of int or float)
+            array-like of longitudes in degrees that delineate the zone bounds
+    """
     path = growin.utils.generate_path('drift', year=start, end_year=stop)
     drift_f_name = os.path.join(path, clean_level+'_'+drift_key+'.p')
+
     if os.path.isfile(drift_f_name):
         drift_inst = pickle.load(open(drift_f_name, 'rb'))
+        return drift_inst
+
+    if isinstance(drift_inst, growin.fourier_exb.DriftInstrument):
+        drift_inst = drift_inst
     else:
         drift_inst = growin.DriftInstrument(platform='cnofs', name='ivm',
-                                          clean_level=clean_level)
+                                            clean_level=clean_level)
         drift_inst.custom.add(drift_fix, 'modify')
         drift_inst.custom.add(shift_longitude, 'modify')
-#        drift_inst.custom.add(filter_ivm, 'modify')
-        drift_inst.get_drifts(drift_key=drift_key,
-                                   lon_bins=zone_bounds,
-                                   season_bins=season_bounds,
-                                   season_names=season_names,
-                                   zone_labels=zone_names,
-                                   start_year=start, stop_year=stop)
-        if not os.path.isdir(path):
-            os.makedirs(path)
-        pickle.dump(drift_inst, open(drift_f_name, 'wb'))
+    drift_inst.get_drifts(drift_key=drift_key,
+                          lon_bins=zone_bounds,
+                          season_bins=season_bounds,
+                          season_names=season_names,
+                          zone_labels=zone_names,
+                          start_year=start, stop_year=stop)
+    if not os.path.isdir(path):
+        os.makedirs(path)
+    pickle.dump(drift_inst, open(drift_f_name, 'wb'))
     return drift_inst
 
 
@@ -92,9 +87,28 @@ def get_growth(tag, day, year, lon, exb_drifts, ve01=0):
         get the sami instrument with growth rates calculated
         checks if there is an existing sami instrument with the appropriate tag
         and loads it. Otherwise it runs the growth rate calculation.
+
+        Parameters
+        ----------
+        tag : (string)
+            name of run where growth is/will be archived
+        day : (int)
+            day of year for SAMI run
+        year : (int)
+            year for SAMI run
+        lon : (int)
+            geo longitude in degrees for SAMI run
+        exb_drifts : (10x2 ndarray of floats)
+            Matrix of Fourier series coefficients dependent on solar local time
+            (SLT) in hours where
+            exb_total = exv_drifts[i,0]*cos((i+1)*pi*SLT/12)
+                      + exb_drifts[i,1]*sin((i+1)*pi*SLT/12)
+        ve01 : (float)
+            offset for Fourier exb drifts, not used by default therefore
+            we are assuming net zero vertical drift
     '''
     path = growin.utils.generate_path('growth', year=year,
-                                    lon=lon, day=day)
+                                      lon=lon, day=day)
     sami_filename = os.path.join(path, 'sami'+tag+'.p')
 
     if os.path.isfile(sami_filename):
@@ -119,29 +133,29 @@ def get_growth(tag, day, year, lon, exb_drifts, ve01=0):
 
 def fit_fejer(year, day, lon):
     '''
-        Compute the fourier coefficients for the Fejer-Scherleiss model
-        year : int four digit
-        day : int, julian day
+        Compute the fourier coefficients for the Fejer-Scherliess model
+        year : (int)
+            year to use for Fejer-Scherliess drifts
+        day : int
+            julian day
         lon : int or double
+            longitude in degrees
     '''
     import pyglow
-    dt = datetime.timedelta(day-1)
+    delta_t = datetime.timedelta(day-1)
     slt_step = np.linspace(0, 23.5, 48)
     # convert from LT to UT because IRI uses UT exclusively
     ut_step = slt_step - lon/15
     ut_step = [t+24 if t < 0 else t for t in ut_step]
     drifts = []
-    # extract the Fejer-Scherleiss drifts from IRI via pyglow
+    # extract the Fejer-Scherliess drifts from IRI via pyglow
     for t in ut_step:
-        '''
-            
-        '''
-        hr = int(t)
-        mn = int(60 * ((t) % 1))
-        dn = datetime.datetime(year, 1, 1, hr, mn) + dt
-        pt = pyglow.Point(dn, 0, lon, 250)
-        pt.run_iri()
-        drifts.append(pt.exb)
+        hour = int(t)
+        minute = int(60 * ((t) % 1))
+        day = datetime.datetime(year, 1, 1, hour, minute) + delta_t
+        point = pyglow.Point(day, 0, lon, 250)
+        point.run_iri()
+        drifts.append(point.exb)
     drifts = np.array(drifts)
     # compute the coefficients
     ve01, exb_drifts = growin.fourier_exb.fourier_fit(slt_step, drifts, 10)
@@ -150,15 +164,41 @@ def fit_fejer(year, day, lon):
 
 def get_growth_rates_survey(start=2008, stop=2014, clean_level='none',
                             drift_key='ionVelocityZ',
-                            season_names=SEASON_NAMES,
-                            season_bounds=SEASON_BOUNDS,
-                            season_days=SEASON_DAYS,
-                            zone_names=LON_SECTOR_NAMES,
-                            zone_bounds=LONGITUDE_BOUNDS,
-                            model_sectors=MODEL_SECTORS):
+                            season_names: list = None,
+                            season_bounds: list = None,
+                            season_days: list = None,
+                            zone_names: list = None,
+                            zone_bounds: list = None,
+                            zone_lons: list = None):
     """calculate the growth rate from the sami model using computed drifts
        run the model for each year and season
-       compute the growth rate and plot"""
+       compute the growth rate and plot
+
+       Parameters
+       ----------
+       start : (int)
+            start year of the survey
+       stop : (int)
+            stop year of the survey
+       clean_level : (string)
+            specify cleaning routine for pysat
+       drift_key : (int)
+            dictionary key for the pysat instrument drift values to use
+       season_names : (array-like of strings)
+            array-like containing the names of the specified seasons
+       season_bounds : (array-like of int or float)
+            array-like ocntaining the days that delineate the season bounds
+       season_days : (dict)
+            dictionary with season names as keys, and as values the day to be
+            used by SAMI
+       zone_names : (array-like of strings)
+            array-like of stings specifying the names of longitude zones used
+       zone_bounds : (array-like of int or float)
+            array-like of longitudes in degrees that delineate the zone bounds
+       zone_lons : (dict)
+            dictionary with zone names as keys, and as values the longitude to
+            be used by SAMI
+    """
 
     if drift_key != 'Fejer':
         drift_inst = get_drifts(start=start, stop=stop,
@@ -175,7 +215,7 @@ def get_growth_rates_survey(start=2008, stop=2014, clean_level='none',
         for season in season_names:
             day = season_days[season]
             for zone in zone_names:
-                lon = model_sectors[zone]
+                lon = zone_lons[zone]
                 if drift:
                     exb_drifts = drift.coefficients.sel(year=year,
                                                         season=season,
