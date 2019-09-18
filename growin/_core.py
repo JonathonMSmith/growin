@@ -35,26 +35,26 @@ def get_drifts(start=2008, stop=2014, clean_level='none', drift_inst=None,
 
     """create/load the instrument and obtain the drifts then save the drifts
 
-       Parameters
-       ----------
-       start : (int)
-            start year of the survey
-       stop : (int)
-            stop year of the survey
-       clean_level : (string)
-            specify cleaning routine for pysat
-       drift_inst: (growin.fourier_exb.DriftInstrument)
-            drift instrument if different custom modifier functions are desired
-       drift_key : (int)
-            dictionary key for the pysat instrument drift values to use
-       season_names : (array-like of strings)
-            array-like containing the names of the specified seasons
-       season_bounds : (array-like of int or float)
-            array-like ocntaining the days that delineate the season bounds
-       zone_names : (array-like of strings)
-            array-like of stings specifying the names of longitude zones used
-       zone_bounds : (array-like of int or float)
-            array-like of longitudes in degrees that delineate the zone bounds
+    Parameters
+    ----------
+    start : (int)
+         start year of the survey
+    stop : (int)
+         stop year of the survey
+    clean_level : (string)
+         specify cleaning routine for pysat
+    drift_inst: (growin.fourier_exb.DriftInstrument)
+         drift instrument if different custom modifier functions are desired
+    drift_key : (int)
+         dictionary key for the pysat instrument drift values to use
+    season_names : (array-like of strings)
+         array-like containing the names of the specified seasons
+    season_bounds : (array-like of int or float)
+         array-like ocntaining the days that delineate the season bounds
+    zone_names : (array-like of strings)
+         array-like of stings specifying the names of longitude zones used
+    zone_bounds : (array-like of int or float)
+         array-like of longitudes in degrees that delineate the zone bounds
     """
     path = growin.utils.generate_path('drift', year=start, end_year=stop)
     drift_f_name = os.path.join(path, clean_level+'_'+drift_key+'.p')
@@ -83,29 +83,28 @@ def get_drifts(start=2008, stop=2014, clean_level='none', drift_inst=None,
 
 
 def get_growth(tag, day, year, lon, exb_drifts, ve01=0):
-    '''
-        get the sami instrument with growth rates calculated
-        checks if there is an existing sami instrument with the appropriate tag
-        and loads it. Otherwise it runs the growth rate calculation.
+    '''get the sami instrument with growth rates calculated
+       checks if there is an existing sami instrument with the appropriate tag
+       and loads it. Otherwise it runs the growth rate calculation.
 
-        Parameters
-        ----------
-        tag : (string)
-            name of run where growth is/will be archived
-        day : (int)
-            day of year for SAMI run
-        year : (int)
-            year for SAMI run
-        lon : (int)
-            geo longitude in degrees for SAMI run
-        exb_drifts : (10x2 ndarray of floats)
-            Matrix of Fourier series coefficients dependent on solar local time
-            (SLT) in hours where
-            exb_total = exv_drifts[i,0]*cos((i+1)*pi*SLT/12)
-                      + exb_drifts[i,1]*sin((i+1)*pi*SLT/12)
-        ve01 : (float)
-            offset for Fourier exb drifts, not used by default therefore
-            we are assuming net zero vertical drift
+    Parameters
+    ----------
+    tag : (string)
+        name of run where growth is/will be archived
+    day : (int)
+        day of year for SAMI run
+    year : (int)
+        year for SAMI run
+    lon : (int)
+        geo longitude in degrees for SAMI run
+    exb_drifts : (10x2 ndarray of floats)
+        Matrix of Fourier series coefficients dependent on solar local time
+        (SLT) in hours where
+        exb_total = exv_drifts[i,0]*cos((i+1)*pi*SLT/12)
+                  + exb_drifts[i,1]*sin((i+1)*pi*SLT/12)
+    ve01 : (float)
+        offset for Fourier exb drifts, not used by default therefore
+        we are assuming net zero vertical drift
     '''
     path = growin.utils.generate_path('growth', year=year,
                                       lon=lon, day=day)
@@ -132,14 +131,16 @@ def get_growth(tag, day, year, lon, exb_drifts, ve01=0):
 
 
 def fit_fejer(year, day, lon):
-    '''
-        Compute the fourier coefficients for the Fejer-Scherliess model
-        year : (int)
-            year to use for Fejer-Scherliess drifts
-        day : int
-            julian day
-        lon : int or double
-            longitude in degrees
+    '''Compute the fourier coefficients for the Fejer-Scherliess model
+
+    Parameters
+    ----------
+    year : (int)
+        year to use for Fejer-Scherliess drifts
+    day : int
+        julian day
+    lon : int or double
+        longitude in degrees
     '''
     import pyglow
     delta_t = datetime.timedelta(day-1)
@@ -171,31 +172,31 @@ def get_growth_rates_survey(start: int, stop: int, clean_level: str,
        run the model for each year and season
        compute the growth rate and plot
 
-       Parameters
-       ----------
-       start : (int)
-            start year of the survey
-       stop : (int)
-            stop year of the survey
-       clean_level : (string)
-            specify cleaning routine for pysat
-       drift_key : (int)
-            dictionary key for the pysat instrument drift values to use
-            a good default for cnofs is 'IonVelmeridional'
-       season_names : (array-like of strings)
-            array-like containing the names of the specified seasons
-       season_bounds : (array-like of int or float)
-            array-like ocntaining the days that delineate the season bounds
-       season_days : (dict)
-            dictionary with season names as keys, and as values the day to be
-            used by SAMI
-       zone_names : (array-like of strings)
-            array-like of stings specifying the names of longitude zones used
-       zone_bounds : (array-like of int or float)
-            array-like of longitudes in degrees that delineate the zone bounds
-       zone_lons : (dict)
-            dictionary with zone names as keys, and as values the longitude to
-            be used by SAMI
+    Parameters
+    ----------
+    start : (int)
+         start year of the survey
+    stop : (int)
+         stop year of the survey
+    clean_level : (string)
+         specify cleaning routine for pysat
+    drift_key : (int)
+         dictionary key for the pysat instrument drift values to use
+         a good default for cnofs is 'IonVelmeridional'
+    season_names : (array-like of strings)
+         array-like containing the names of the specified seasons
+    season_bounds : (array-like of int or float)
+         array-like ocntaining the days that delineate the season bounds
+    season_days : (dict)
+         dictionary with season names as keys, and as values the day to be
+         used by SAMI
+    zone_names : (array-like of strings)
+         array-like of stings specifying the names of longitude zones used
+    zone_bounds : (array-like of int or float)
+         array-like of longitudes in degrees that delineate the zone bounds
+    zone_lons : (dict)
+         dictionary with zone names as keys, and as values the longitude to
+         be used by SAMI
     """
 
     if drift_key != 'Fejer':

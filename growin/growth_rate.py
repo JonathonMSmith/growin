@@ -31,10 +31,9 @@ g_0 = 9.8
 R_e = 6.38 * 10**3
 
 class FluxTube():
-    """
-    flux tube integrated (fti) quantities
-    all of these have the same shape that is the number of altitude bins by the
-    number of time steps
+    """flux tube integrated (fti) quantities
+       all of these have the same shape that is the number of altitude bins by the
+       number of time steps
 
     Object variables
     ----------------
@@ -134,8 +133,7 @@ class FluxTubeCell():
             self.nu += nu_i(n_i, self.n_n, self.A)
 
 def ft_bin_loc(sami_out, ftl, ft):
-    """
-    returns the location and spatial extent of current bin
+    """returns the location and spatial extent of current bin
 
     Parameters
     ----------
@@ -154,8 +152,7 @@ def ft_bin_loc(sami_out, ftl, ft):
     return lat, lat_2, lon, alt, alt_2
 
 def format_dates(sami_out, t_step):
-    '''
-    returns the date in all the required formats for different packages
+    '''returns the date in all the required formats for different packages
 
     Parameters
     ----------
@@ -173,8 +170,7 @@ def format_dates(sami_out, t_step):
     return iyd, d_time, d_str
 
 def ft_length(alt_1, alt_2, lat_1, lat_2):
-    """
-    law of cosines for determining linear extent of flux tube (ft) bin
+    """law of cosines for determining linear extent of flux tube (ft) bin
 
     Parameters
     ----------
@@ -194,8 +190,7 @@ def ft_length(alt_1, alt_2, lat_1, lat_2):
     return math.sqrt(lenkm) * 10**3
 
 def nu_i(n_i, n_n, A):
-    """
-    approximate calculation of ion collision frequency from Kelley 89
+    """approximate calculation of ion collision frequency from Kelley 89
 
     Parameters
     ----------
@@ -209,8 +204,7 @@ def nu_i(n_i, n_n, A):
     return 2.6 * 10**(-9) * (n_i + n_n) * A**(-1/2)
 
 def nu_e(n_n, n_e, T_e):
-    """
-    approximate calculation of electron collision frequency from Kelly 89
+    """approximate calculation of electron collision frequency from Kelly 89
 
     Parameters
     ----------
@@ -226,10 +220,9 @@ def nu_e(n_n, n_e, T_e):
     return nu_e_n + nu_e_i
 
 def g_e_L(sami_out, ft):
-    """
-    gravity at the bin altitude
-    L is geocentric distance in earth radii
-    the L shell at the local altitude not apex.
+    """gravity at the bin altitude
+       L is geocentric distance in earth radii
+       the L shell at the local altitude not apex.
 
     Parameters
     ----------
@@ -258,8 +251,7 @@ def omega(B, particle):
         return q_e * B / (m_i[particle] * amu)
 
 def sigma_tot(denis, n_n, n_e, B, A, T_e):
-    """
-    calculate thetotal Pedersen conductivity at location in mho/m
+    """calculate thetotal Pedersen conductivity at location in mho/m
 
     Parameters
     ----------
@@ -303,8 +295,7 @@ def get_n_n(nn):
     return n_n, species
 
 def calc_growth_rate(tube):
-    """
-    the growth rate equation from Sultan 96
+    """the growth rate equation from Sultan 96
 
     Parameters
     ----------
@@ -340,9 +331,8 @@ def calc_growth_rate(tube):
     return gamma
 
 def run_models(sami, lat, lon, alt, cell, flux_tube, d_str, t_step):
-    '''
-    run all required models to get quantities not contained in SAMI2
-    vestigial inclusion of neutral density here from before SAMI2 offered it
+    '''run all required models to get quantities not contained in SAMI2
+       vestigial inclusion of neutral density here from before SAMI2 offered it
 
     Parameters
     ----------
@@ -370,9 +360,9 @@ def run_models(sami, lat, lon, alt, cell, flux_tube, d_str, t_step):
     return mag, atmos, hwm
 
 def eval_tubes(sami_out, exb, t_step=0):
-    """
-    calculate the flux tube integrated quantities for each flux tube needed for
-    the growth rate calculation
+    """calculate the flux tube integrated quantities for each flux tube needed
+       for the growth rate calculation
+
     Parameters
     ----------
     sami_out : (sami2py.Model)
@@ -409,12 +399,11 @@ def eval_tubes(sami_out, exb, t_step=0):
     return tube_list, d_time
 
 def rt_growth_rate(sami_out, exb, t_step=0):
-    """
-    calculate flux tube integrated electron density altitude gradient
-    and flux tube integrated growth rate. These are done together to avoid
-    iterating over all of the flux tubes twice to do each of these calculations
-    individually. Further this is because K cannot be calculated using this
-    method in the eval_tubes function.
+    """calculate flux tube integrated electron density altitude gradient
+       and flux tube integrated growth rate. These are done together to avoid
+       iterating over all of the flux tubes twice to do each of these
+       calculations individually. Further this is because K cannot be
+       calculated using this method in the eval_tubes function.
 
     Parameters
     ----------
@@ -426,11 +415,11 @@ def rt_growth_rate(sami_out, exb, t_step=0):
     """
     tube_list, d_time = eval_tubes(sami_out, exb, t_step)
     nf = len(tube_list)
-    '''
+    """
     calculate K by taking a simple gradient of N
     h1/N_e_1 are the values lower in altitude
     h2/N_e_2 are the values higher in altitude
-    '''
+    """
     for ft in range(nf):
         if ft + 1 == nf:
             h1 = tube_list[ft - 1].alt
@@ -473,9 +462,8 @@ def exb_calc(coefficients, ve01, t):
     return exb
 
 def run_growth_calc(sami, coefficients=None, ve01=0):
-    '''
-    runs the growth rate calculation for a sami2 run. Requires external drift
-    information until exb drifts from sami2 are an archived data product
+    '''runs the growth rate calculation for a sami2 run. Requires external
+       drift information until exb drifts from sami2 are an archived data prod.
 
     Parameters:
     sami : (sami2py.Model)

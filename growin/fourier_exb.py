@@ -9,9 +9,13 @@ from pysat.ssnl.avg import median2D as med2D
 
 def make_fourier(na, nb):
     """ The function for the curve fit
-        Parameters:
-        na: int number of cosine terms/coefficients
-        nb: int number of sin terms/coefficients
+
+    Parameters
+    ----------
+    na: (int)
+        number of cosine terms/coefficients
+    nb: (int)
+        number of sin terms/coefficients
     """
     def fourier(x, *a):
         ret = a[0]
@@ -24,10 +28,15 @@ def make_fourier(na, nb):
 
 def fourier_fit(local_times, median_drifts, num_co):
     """ Here the terms in the fourier fit are actually determined
-        Parameters:
-        local_times: arraylike; xdim for fit; local time values
-        median_drifts: arraylike; ydim for fit; median drift values from data
-        num_co: int how many sin/cosine pairs for the fit
+
+    Parameters
+    ----------
+    local_times : (array-like)
+        xdim for fit; local time values
+    median_drifts : (array-like)
+        ydim for fit; median drift values from data
+    num_co : (int)
+        'number of coefficients) how many sin/cosine pairs for the fit
     """
     exb_drifts = np.zeros((10, 2))
     ind, = np.where(~np.isnan(median_drifts))
@@ -49,21 +58,25 @@ def fourier_fit(local_times, median_drifts, num_co):
     return ve01, exb_drifts
 
 class DriftInstrument(pysat.Instrument):
-    """ Class that inherits from a pysat instrument that will have an attribute
-        corresponding to the median drifts, their deviation, and the fourier
-        curve fit for use in the SAMI2 model
+    """Class that inherits from a pysat instrument that will have an attribute
+       corresponding to the median drifts, their deviation, and the fourier
+       curve fit for use in the SAMI2 model
     """
     def exb_fourier_fit(self, start, stop, coords):
-        """ This gets the median drifts and the coefficients and puts them in
-            an xarray Dataset. The drifts are first obtained using the pysat
-            function pysat.ssnl.avg.median2D and then the fits are performed
-            on the output and all of it is placed in xarray.DataArrays that
-            are then combined into a data set for this Year/Season.
-            The longitude coordinate is just the longitude values but will/can
-            be later specified as names if desired.
-            parameters:
-            start: pysat.datetime; start date for median2d
-            stop: pysat.datetime; stop date for median2d
+        """This gets the median drifts and the coefficients and puts them in
+           an xarray Dataset. The drifts are first obtained using the pysat
+           function pysat.ssnl.avg.median2D and then the fits are performed
+           on the output and all of it is placed in xarray.DataArrays that
+           are then combined into a data set for this Year/Season.
+           The longitude coordinate is just the longitude values but will/can
+           be later specified as names if desired.
+
+        Parameters
+        ----------
+        start : (pysat.datetime)
+            start date for median2d
+        stop : (pysat.datetime)
+            stop date for median2d
         """
         self.bounds = (start, stop)
         #compute medians for each longitude sector in hourly LT bins
@@ -85,8 +98,8 @@ class DriftInstrument(pysat.Instrument):
                            'coefficients': coef})
 
     def compile_drifts(self):
-        """ Builds larger Dataset containg all of the drifts and fits over the
-            entire user-specified annual range.
+        """Builds larger Dataset containg all of the drifts and fits over the
+           entire user-specified annual range.
         """
         year_drift = []
         #create coordinate tuples for xarray
@@ -121,23 +134,34 @@ class DriftInstrument(pysat.Instrument):
         return drift_arr
 
     def get_drifts(self, drift_key=None, num_co=10,
-                        lon_bins=np.linspace(0, 360, 5, dtype=int),
-                        slt_bins=np.linspace(0, 24, 49),
-                        season_bins=[1, 3, 5, 7, 9, 11, 1],
-                        season_names=None, zone_labels=None,
-                        start_year=None, stop_year=None):
-        """ The Big Function. This is the main function that generates all of
-            the data and organizes it for the drift attribute in the object.
-            parameters:
-            drift_key: string; instrument key for vertical drift
-            num_co: int how many sin/cosine pairs for the fitdownload
-            slt_bins: arraylike bin edges in local time
-            lon_bins: arraylike bin edges in longitude
-            season_bins: arraylike months used as edges of the season "bins"
-            season_names: arraylike of string names for season xarray coords
-            zone_labels: arraylike of string names for longitude xarray coords
-            start_year: int the year to start the seasonal averaging
-            stop_year: int the year to stop the seasonal averaging
+                   lon_bins=np.linspace(0, 360, 5, dtype=int),
+                   slt_bins=np.linspace(0, 24, 49),
+                   season_bins=np.linspace(0, 12, 6),
+                   season_names=None, zone_labels=None,
+                   start_year=None, stop_year=None):
+        """The Big Function. This is the main function that generates all of
+           the data and organizes it for the drift attribute in the object.
+
+        Parameters
+        ----------
+        drift_key : (string)
+            instrument key for vertical drift
+        num_co : (int)
+            how many sin/cosine pairs for the fitdownload
+        slt_bins : (array-like)
+            bin edges in local time
+        lon_bins : (array-like)
+            bin edges in longitude
+        season_bins : (array-like)
+            months used as edges of the season "bins"
+        season_names : (array-like)
+            string names for season xarray coords
+        zone_labels : (array-like)
+            string names for longitude xarray coords
+        start_year : (int)
+            the year to start the seasonal averaging
+        stop_year : (int)
+            the year to stop the seasonal averaging
         """
         if drift_key is None:
             raise AttributeError('drift_key must be specified')
