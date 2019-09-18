@@ -162,14 +162,11 @@ def fit_fejer(year, day, lon):
     return exb_drifts
 
 
-def get_growth_rates_survey(start=2008, stop=2014, clean_level='none',
-                            drift_key='ionVelocityZ',
-                            season_names: list = None,
-                            season_bounds: list = None,
-                            season_days: list = None,
-                            zone_names: list = None,
-                            zone_bounds: list = None,
-                            zone_lons: list = None):
+def get_growth_rates_survey(start: int, stop: int, clean_level: str,
+                            drift_key: str, season_names: list,
+                            season_bounds: list, season_days: dict,
+                            zone_names: list, zone_bounds: list,
+                            zone_lons: dict):
     """calculate the growth rate from the sami model using computed drifts
        run the model for each year and season
        compute the growth rate and plot
@@ -184,6 +181,7 @@ def get_growth_rates_survey(start=2008, stop=2014, clean_level='none',
             specify cleaning routine for pysat
        drift_key : (int)
             dictionary key for the pysat instrument drift values to use
+            a good default for cnofs is 'IonVelmeridional'
        season_names : (array-like of strings)
             array-like containing the names of the specified seasons
        season_bounds : (array-like of int or float)
