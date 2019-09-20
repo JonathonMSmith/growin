@@ -38,7 +38,7 @@ def fourier_fit(local_times, median_drifts, num_co):
     num_co : (int)
         'number of coefficients) how many sin/cosine pairs for the fit
     """
-    exb_drifts = np.zeros((10, 2))
+    exb_drifts = np.zeros((num_co, 2))
     ind, = np.where(~np.isnan(median_drifts))
     if ind.size < num_co*2+1:
         warnings.warn('not enough viable drift data, '

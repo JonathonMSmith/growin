@@ -88,6 +88,7 @@ class FluxTube():
         self.sig_ratio = 0
         self.g_nu = 0
         self.K = 0
+        self.R = 0
 
 class FluxTubeCell():
     """one cell or bin of a flux tube from the sami model and all of its
@@ -131,6 +132,7 @@ class FluxTubeCell():
         self.nu = 0
         for n_i in denis:
             self.nu += nu_i(n_i, self.n_n, self.A)
+        self.r_local = r_local(denis, alt)
 
 def ft_bin_loc(sami_out, ftl, ft):
     """returns the location and spatial extent of current bin
@@ -234,6 +236,24 @@ def g_e_L(sami_out, ft):
     apex_alt = np.amax(sami_out.zalt[:, ft])
     L = (apex_alt + R_e) / R_e
     return g_0 / L**2
+
+def r_local(denis, alt):
+    """Local recombination from Sultan eq 21 alpha*n_mol
+       Risbeth & Garriott '69: Dissociative recombination is the principal
+       E and F region loss mechansim.
+       Huba '96: RTI not damped by recombination in F region
+       n_mol is the concentration of molecular ions
+       alpha = 2*10**(-7) according to Sultan '92
+       alpha ~ 10**(-7) according to Risbeth & Garriott '69
+    """
+    n_mol = 0
+    if alt < 200:
+        return 0
+    for i, n_i in enumerate(denis):
+        if i == 2 | i == 3 | i == 5:
+            n_mol += n_i
+        
+    return n_mol*2*10**(-7)
 
 
 def omega(B, particle):
@@ -384,16 +404,21 @@ def eval_tubes(sami_out, exb, t_step=0):
             ftc = FluxTubeCell(sami_out, ftl, ft, iyd, d_str, t_step)
             #Reimann sum values for total flux tube
             tube.U += ftc.wind * math.cos(ftc.phi) * ftc.len * ftc.sig
+            #factor of 100 to convert ftc.len from m to cm
             tube.N += ftc.n_e * ftc.len * 10**2
             tube.sig_total += ftc.sig * ftc.len
+            tube.R += ftc.r_local * ftc.n_e * ftc.len * 10**2
             #Reimann sum values for F region
             if ftc.alt > 200:
                 tube.sig_F += ftc.sig * ftc.len
                 tube.nu_ef += ftc.nu * ftc.n_e * ftc.len * 10**2
 
+        #U is weighted by the total flux tube integrated Pedersen conductivity
         tube.U = tube.U / tube.sig_total
-        tube.nu_ef = tube.nu_ef / tube.N
         tube.sig_ratio = tube.sig_F / tube.sig_total
+        #nu_ef and R are weighted by the flux tube integrated electron density
+        tube.nu_ef = tube.nu_ef / tube.N
+        tube.R = tube.R / tube.N
         tube.g_nu = tube.g / tube.nu_ef
         tube_list.append(tube)
     return tube_list, d_time
