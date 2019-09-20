@@ -346,8 +346,9 @@ def calc_growth_rate(tube):
     g_e = tube.g
     nu_eff = tube.nu_ef
     K_F = tube.K
+    R_T = tube.R
 
-    gamma = sig_F_P / sig_total * (V - U_L + g_e/nu_eff) * K_F
+    gamma = sig_F_P / sig_total * (V - U_L + g_e/nu_eff) * K_F - R_T
     return gamma
 
 def run_models(sami, lat, lon, alt, cell, flux_tube, d_str, t_step):
