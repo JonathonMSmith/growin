@@ -82,7 +82,7 @@ def get_drifts(start=2008, stop=2014, clean_level='none', drift_inst=None,
     return drift_inst
 
 
-def get_growth(tag, day, year, lon, exb_drifts, ve01=0):
+def get_growth(tag, day, year, lon, exb_drifts, ve01=0, f10=120.0):
     '''get the sami instrument with growth rates calculated
        checks if there is an existing sami instrument with the appropriate tag
        and loads it. Otherwise it runs the growth rate calculation.
@@ -115,10 +115,11 @@ def get_growth(tag, day, year, lon, exb_drifts, ve01=0):
         return sami
     if exb_drifts is not None:
         sami2py.run_model(tag=tag, day=day, year=year, lon=lon, fejer=False,
-                          ExB_drifts=exb_drifts, ve01=0, outn=True)
+                          ExB_drifts=exb_drifts, ve01=0, outn=True,
+                          f107=f10, f107a=f10)
     else:
         sami2py.run_model(tag=tag, day=day, year=year, lon=lon, fejer=True,
-                          outn=True)
+                          outn=True, f107=f10, f107a=f10)
 
     sami = sami2py.Model(tag=tag, day=day,
                          year=year, lon=lon, outn=True)
