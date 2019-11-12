@@ -2,14 +2,22 @@ language: python
 python:
   - "3.6"      # current default Python on Travis CI
   - "3.7"
+
+addons:
+  apt:
+    packages:
+    - gfortran
+
 # command to install dependencies
-install:
+before_install:
   - pip install scipy
   - pip install xarray
   - pip install igrf12
   - pip install numpy
   - pip install pysat
   - pip install sami2py
+install:
+  - python setup.py install
 # command to run tests
 script:
   - pytest
