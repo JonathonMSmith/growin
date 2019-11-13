@@ -15,7 +15,7 @@ before_install:
   - pip install igrf12
   - pip install numpy
   - pip install pysat
-  - pip install sami2py
+  - pip install -i https://test.pypi.org/simple/ sami2py
 install:
   - python setup.py install
 # command to run tests
