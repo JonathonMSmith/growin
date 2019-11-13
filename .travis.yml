@@ -16,7 +16,7 @@ before_install:
   - pip install numpy
   - pip install pysat
   - pip install matplotlib
-  - pip install -i https://test.pypi.org/simple/ sami2py
+  - pip install -v -i https://test.pypi.org/simple/ sami2py
 install:
   - python setup.py install
 # command to run tests
