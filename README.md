@@ -11,7 +11,11 @@
     |  $$$$$$/                                                
      \______/                                                 
  -->   
-![Logo](/logo.png)
+<div align="center">
+        <img height="0" width="0px">
+        <img width="60%" src="/logo.png" alt="pysat" title="pysat"</img>
+</div>
+
 #Overview
 
 The flux-tube-integrated linear Rayleigh-Taylor instability (grow)th rate of 
