@@ -1,4 +1,4 @@
-<!-- language: lang-none -->
+<!--
                                                  /$$          
                                                 |__/          
       /$$$$$$   /$$$$$$   /$$$$$$  /$$  /$$  /$$ /$$ /$$$$$$$ 
@@ -10,7 +10,8 @@
      /$$  \ $$                                                
     |  $$$$$$/                                                
      \______/                                                 
-    
+ -->   
+![Logo](/logo.png)
 #Overview
 
 The flux-tube-integrated linear Rayleigh-Taylor instability (grow)th rate of 
