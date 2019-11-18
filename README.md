@@ -13,7 +13,7 @@
  -->   
 <div align="center">
         <img height="0" width="0px">
-        <img width="20%" src="/logo.png" alt="pysat" title="pysat"</img>
+        <img width="20%" src="/banner.png" alt="pysat" title="pysat"</img>
 </div>
 
 #Overview
