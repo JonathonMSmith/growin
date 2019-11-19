@@ -46,10 +46,10 @@ def generate_path(tag, lon=None, year=None, day=None, test=False,
         raise TypeError
 
     if test:
-        from irfl import test_data_dir
+        from growin import test_data_dir
         top_directory = test_data_dir
     else:
-        from irfl import archive_dir
+        from growin import archive_dir
         top_directory = archive_dir
 
     # Check if top_directory is empty string, ie, user has not specified
@@ -68,28 +68,28 @@ def generate_path(tag, lon=None, year=None, day=None, test=False,
                                                      day=day)))
     else:
         raise NameError(''.join(('Archive Directory Not Specified: ',
-                                 'Run irfl.utils.set_archive_dir')))
+                                 'Run growin.utils.set_archive_dir')))
 
     return archive_path
 
 
 def set_archive_dir(path=None, store=True):
-    """Set the top level directory pysat uses to look for data and reload.
+    """Set the top level directory growin uses to look for data and reload.
 
     Parameters
     ----------
     path : string
-        valid path to directory pysat uses to look for data
+        valid path to directory growin uses to look for data
     store : bool
         if True, store data directory for future runs
     """
     import os
-    import irfl
+    import growin
 
     if os.path.isdir(path):
         if store:
-            with open(irfl.archive_path, 'w') as archive_file:
+            with open(growin.archive_path, 'w') as archive_file:
                 archive_file.write(path)
-        irfl.archive_dir = path
+        growin.archive_dir = path
     else:
         raise ValueError('Path does not lead to a valid directory.')

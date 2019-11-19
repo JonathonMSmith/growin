@@ -4,7 +4,7 @@
 # Full license can be found in License.md
 # -----------------------------------------------------------------------------
 """
-irfl
+growin
 -----------
 """
 
@@ -20,17 +20,17 @@ if 'CONDA_DEFAULT_ENV' in os.environ:
     env_name = os.environ['CONDA_DEFAULT_ENV']
 elif 'VIRTUAL_ENV' in os.environ:
     env_name = os.environ['VIRTUAL_ENV']
-# set irfl directory path in home directory
-irfl_dir = os.path.join(home_dir, '.irfl', env_name)
-# make sure a irfl directory for model output exists
-if not os.path.isdir(irfl_dir):
+# set growin directory path in home directory
+growin_dir = os.path.join(home_dir, '.growin', env_name)
+# make sure a growin directory for model output exists
+if not os.path.isdir(growin_dir):
     # create directory
-    os.mkdir(irfl_dir)
-    print(''.join(('Created .irfl directory in user home directory to',
+    os.mkdir(growin_dir)
+    print(''.join(('Created .growin directory in user home directory to',
                    'store settings.')))
 
 
-archive_path = os.path.join(irfl_dir, 'archive_path.txt')
+archive_path = os.path.join(growin_dir, 'archive_path.txt')
 if os.path.isfile(archive_path):
     # load up stored data path
     with open(archive_path, 'r') as f:
@@ -40,18 +40,18 @@ else:
     with open(archive_path, 'w+') as f:
         f.write('')
     archive_dir = ''
-    print(''.join(('Run irfl.utils.set_archive_dir to set the path to',
+    print(''.join(('Run growin.utils.set_archive_dir to set the path to',
                    ' top-level directory for model outputs.')))
 
 # load test_data directory
-with open(os.path.join(irfl_dir, 'test_data_path.txt'), 'r') as f:
+with open(os.path.join(growin_dir, 'test_data_path.txt'), 'r') as f:
     test_data_dir = f.readline()
 
 
 # import main functions
 try:
-    from irfl import _core, utils, generate_plots, fourier_exb, growth_rate
-    from irfl.fourier_exb import DriftInstrument
-    from irfl._core import get_growth_rates_survey
+    from growin import _core, utils, fourier_exb, growth_rate
+    from growin.fourier_exb import DriftInstrument
+    from growin._core import get_growth_rates_survey, get_growth
 except ImportError as errstr:
-    logging.exception('problem importing irfl: ' + str(errstr))
+    logging.exception('problem importing growin: ' + str(errstr))
