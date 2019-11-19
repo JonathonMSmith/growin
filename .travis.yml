@@ -16,9 +16,18 @@ before_install:
   - pip install numpy
   - pip install pysat
   - pip install matplotlib
-  - pip install -v -i https://test.pypi.org/simple/ sami2py
+  # Prepare modified sami2py install
+  - cd ..
+  - echo 'cloning sami2py'
+  - git clone https://github.com/sami2py/sami2py.git >/dev/null
+  - echo 'installing sami2py'
+  - cd ./sami2py
+  - git checkout develop
+  # install sami2py
+  - python setup.py install >/dev/null
 install:
-  - python setup.py install
+ - cd ../growin
+ - python setup.py install
 # command to run tests
 script:
   - pytest
