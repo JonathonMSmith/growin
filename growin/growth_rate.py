@@ -1,5 +1,5 @@
 """
-Calculation of altitude profiles of flux tube integrated growth rates of the 
+Calculation of altitude profiles of flux tube integrated growth rates of the
 Rayleigh Taylor instability using SAMI2 output for ion densities, and electron
 temperatures
 

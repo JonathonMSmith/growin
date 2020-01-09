@@ -15,11 +15,16 @@ def shift_local_time(inst):
     inst[idx, 'slt'] += 24.
 
 
-def shift_longitude(inst):
-    """shift longitude values 15 degrees for longitude sector binning"""
-    inst['glon'] += 15.
+def shift_longitude(inst, offset=None):
+    """shift longitude values some degrees for longitude sector binning
+        there has got to be a better way"""
+    if offset is None:
+        offset = 15
+    inst['glon'] += offset
     idx, = np.where(inst['glon'] > 360)
     inst[idx, 'glon'] -= 360
+    idx_neg, = np.where(inst['glon'] < 0)
+    inst[idx_neg, 'glon'] += 360
 
 
 def drift_fix(inst):
@@ -31,7 +36,7 @@ def drift_fix(inst):
 def get_drifts(start=2008, stop=2014, clean_level='none', drift_inst=None,
                drift_key='ionVelocityZ', season_names: list = None,
                season_bounds: list = None, zone_names: list = None,
-               zone_bounds: list = None):
+               zone_bounds: list = None, offset: int = None):
 
     """create/load the instrument and obtain the drifts then save the drifts
 
@@ -57,6 +62,7 @@ def get_drifts(start=2008, stop=2014, clean_level='none', drift_inst=None,
          array-like of longitudes in degrees that delineate the zone bounds
     """
     path = growin.utils.generate_path('drift', year=start, end_year=stop)
+    #change this to be more specific... maybe add a tag or something
     drift_f_name = os.path.join(path, clean_level+'_'+drift_key+'.p')
 
     if os.path.isfile(drift_f_name):
@@ -69,7 +75,7 @@ def get_drifts(start=2008, stop=2014, clean_level='none', drift_inst=None,
         drift_inst = growin.DriftInstrument(platform='cnofs', name='ivm',
                                             clean_level=clean_level)
         drift_inst.custom.add(drift_fix, 'modify')
-        drift_inst.custom.add(shift_longitude, 'modify')
+        drift_inst.custom.add(shift_longitude, 'modify', offset)
     drift_inst.get_drifts(drift_key=drift_key,
                           lon_bins=zone_bounds,
                           season_bins=season_bounds,
