@@ -75,7 +75,7 @@ def get_drifts(start=2008, stop=2014, clean_level='none', drift_inst=None,
         drift_inst = growin.DriftInstrument(platform='cnofs', name='ivm',
                                             clean_level=clean_level)
         drift_inst.custom.add(drift_fix, 'modify')
-        drift_inst.custom.add(shift_longitude, 'modify', offset)
+        drift_inst.custom.add(shift_longitude, 'modify', offset=offset)
     drift_inst.get_drifts(drift_key=drift_key,
                           lon_bins=zone_bounds,
                           season_bins=season_bounds,
