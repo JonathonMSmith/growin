@@ -1,5 +1,5 @@
 """
-Calculation of altitude profiles of flux tube integrated growth rates of the 
+Calculation of altitude profiles of flux tube integrated growth rates of the
 Rayleigh Taylor instability using SAMI2 output for ion densities, and electron
 temperatures
 
@@ -62,11 +62,11 @@ class FluxTube():
     sig_total:
         total flux tube integrated conductivity
     """
-    def __init__(self, sami_out, ft, max_alt, exb):
+    def __init__(self, sami_data, ft, max_alt, exb):
         '''
         Parameters
         ----------
-        sami_out : (sami2py.Model)
+        sami_data : (xarray.core.dataset.Dataset)
             the sami model being used to calculate growth rates
         ft : (int)
             'flux tube' flux tube index for SAMI
@@ -83,7 +83,7 @@ class FluxTube():
         self.nu_ef = 0
         self.alt = max_alt
         self.V = exb
-        self.g = g_e_L(sami_out, ft)
+        self.g = g_e_L(sami_data, ft)
         self.gamma = 0
         self.sig_ratio = 0
         self.g_nu = 0
@@ -96,11 +96,11 @@ class FluxTubeCell():
        this includes all of the density values and the location coordinates
        to specify this cell
     """
-    def __init__(self, sami_out, ftl, ft, iyd, d_str, t_step):
+    def __init__(self, sami_data, ftl, ft, iyd, d_str, t_step):
         '''
         Parameters
         ----------
-        sami_out : (sami2py.Model)
+        sami_data : (xarray.core.dataset.Dataset)
             the sami model being used to calculate growth rates
         ftl : (float)
             'flux tube length' index along the length of a flux tube for SAMI
@@ -113,16 +113,16 @@ class FluxTubeCell():
         t_step : (int)
             'time step'
         '''
-        lat, lat_2, lon, alt, alt_2 = ft_bin_loc(sami_out, ftl, ft)
-        mag, atmos, hwm = run_models(sami_out, lat, lon, alt, ftl, ft,
+        lat, lat_2, lon, alt, alt_2 = ft_bin_loc(sami_data, ftl, ft)
+        mag, atmos, hwm = run_models(sami_data, lat, lon, alt, ftl, ft,
                                      d_str, t_step)
-        denis = sami_out.deni[ftl, ft, :, t_step]
+        denis = sami_data.deni.values[ftl, ft, :, t_step]
 
         self.alt = alt
         self.len = ft_length(alt, alt_2, lat, lat_2)
         self.n_n, species = get_n_n(atmos)
         self.n_e = np.sum(denis)
-        self.t_e = sami_out.te[ftl, ft, t_step]
+        self.t_e = sami_data.te.values[ftl, ft, t_step]
         self.A = np.mean([m_i[i] for i in species])
         self.B = float(mag.total) * 10**(-9) #convert nT output to T
         self.phi = (90 - float(mag.incl)) * math.pi / 180 #dip angle radians
@@ -134,38 +134,38 @@ class FluxTubeCell():
             self.nu += nu_i(n_i, self.n_n, self.A)
         self.r_local = r_local(denis, alt)
 
-def ft_bin_loc(sami_out, ftl, ft):
+def ft_bin_loc(sami_data, ftl, ft):
     """returns the location and spatial extent of current bin
 
     Parameters
     ----------
-    sami_out : (sami2py.Model)
+    sami_data : (xarray.core.dataset.Dataset)
         the sami model being used to calculate growth rates
     ftl : (float)
         'flux tube length' index along the length of a flux tube for SAMI
     ft : (int)
         'flux tube' flux tube index for SAMI
     """
-    lat = sami_out.glat[ftl, ft]
-    lat_2 = sami_out.glat[ftl + 1, ft]
-    lon = sami_out.glon[ftl, ft]
-    alt = sami_out.zalt[ftl, ft]
-    alt_2 = sami_out.zalt[ftl+1, ft]
+    lat = sami_data.glat.values[ftl, ft]
+    lat_2 = sami_data.glat.values[ftl + 1, ft]
+    lon = sami_data.glon.values[ftl, ft]
+    alt = sami_data.zalt.values[ftl, ft]
+    alt_2 = sami_data.zalt.values[ftl+1, ft]
     return lat, lat_2, lon, alt, alt_2
 
-def format_dates(sami_out, t_step):
+def format_dates(sami, t_step):
     '''returns the date in all the required formats for different packages
 
     Parameters
     ----------
-    sami_out : (sami2py.Model)
+    sami : (sami2py.Model)
         the sami model being used to calculate growth rates
     t_step : (int)
         time step for the sami model object
     '''
-    day = sami_out.day
-    year = sami_out.year
-    ut = sami_out.ut[t_step]
+    day = sami.day
+    year = sami.year
+    ut = sami.ut[t_step]
     iyd = int((year - (2000 if year > 1999 else 1900)) * 1000) + day
     d_time = datetime(year, 1, 1) + timedelta(days=day-1, seconds=ut*3600)
     d_str = d_time.strftime('%Y-%m-%d')
@@ -221,19 +221,19 @@ def nu_e(n_n, n_e, T_e):
     nu_e_i = (34 + 4.18 * math.log(T_e**3 / n_e)) * n_e * T_e**(-3/2)
     return nu_e_n + nu_e_i
 
-def g_e_L(sami_out, ft):
+def g_e_L(sami_data, ft):
     """gravity at the bin altitude
        L is geocentric distance in earth radii
        the L shell at the local altitude not apex.
 
     Parameters
     ----------
-    sami_out : (sami2py.Model)
+    sami_data : (xarray.dataset.Dataset)
         the sami model being used to calculate growth rates       
     ft : (int)
         'flux tube' flux tube index for SAMI
     """
-    apex_alt = np.amax(sami_out.zalt[:, ft])
+    apex_alt = np.amax(sami_data.zalt[:, ft])
     L = (apex_alt + R_e) / R_e
     return g_0 / L**2
 
@@ -375,34 +375,34 @@ def run_models(sami, lat, lon, alt, cell, flux_tube, d_str, t_step):
         time step for sami2
     '''
     mag = igrf12.igrf(d_str, glat=lat, glon=lon, alt_km=alt)
-    atmos = sami.denn[cell, flux_tube, :, t_step]
+    atmos = sami.denn.values[cell, flux_tube, :, t_step]
     #only the meridional component of wind is used as per Sultan1996
-    hwm = sami.u[cell, flux_tube, t_step]
+    hwm = sami.u4.values[cell, flux_tube, t_step]
     return mag, atmos, hwm
 
-def eval_tubes(sami_out, exb, t_step=0):
+def eval_tubes(sami, exb, t_step=0):
     """calculate the flux tube integrated quantities for each flux tube needed
        for the growth rate calculation
 
     Parameters
     ----------
-    sami_out : (sami2py.Model)
+    sami : (sami2py.Model)
         sami2py model object
     t_step : (int)
         array index for sami2py object timestep variable
     """
-    iyd, d_time, d_str = format_dates(sami_out, t_step)
-    nz = np.shape(sami_out.glat)[0]
-    nf = np.shape(sami_out.glat)[1]
-
+    sami_data = sami.data
+    iyd, d_time, d_str = format_dates(sami, t_step)
+    nz = np.shape(sami_data.glat.values)[0]
+    nf = np.shape(sami_data.glat.values)[1]
     tube_list = []
     for ft in range(nf):
-        max_alt = np.amax(sami_out.zalt[:, ft])
+        max_alt = np.amax(sami_data.zalt.values[:, ft])
         if max_alt <= 200:
             continue
-        tube = FluxTube(sami_out, ft, max_alt, exb)
+        tube = FluxTube(sami_data, ft, max_alt, exb)
         for ftl in range(nz-1):
-            ftc = FluxTubeCell(sami_out, ftl, ft, iyd, d_str, t_step)
+            ftc = FluxTubeCell(sami_data, ftl, ft, iyd, d_str, t_step)
             #Reimann sum values for total flux tube
             tube.U += ftc.wind * math.cos(ftc.phi) * ftc.len * ftc.sig
             #factor of 100 to convert ftc.len from m to cm
@@ -424,7 +424,7 @@ def eval_tubes(sami_out, exb, t_step=0):
         tube_list.append(tube)
     return tube_list, d_time
 
-def rt_growth_rate(sami_out, exb, t_step=0):
+def rt_growth_rate(sami, exb, t_step=0):
     """calculate flux tube integrated electron density altitude gradient
        and flux tube integrated growth rate. These are done together to avoid
        iterating over all of the flux tubes twice to do each of these
@@ -439,7 +439,7 @@ def rt_growth_rate(sami_out, exb, t_step=0):
     t_step : (int)
         time step for SAMI2
     """
-    tube_list, d_time = eval_tubes(sami_out, exb, t_step)
+    tube_list, d_time = eval_tubes(sami, exb, t_step)
     nf = len(tube_list)
     """
     calculate K by taking a simple gradient of N
@@ -511,7 +511,7 @@ def run_growth_calc(sami, coefficients=None, ve01=0):
         lt = t + lon0/15
         lt = lt % 24
         exb = exb_calc(coefficients, ve01, lt)
-        tube_list, t = rt_growth_rate(sami_out=sami, exb=exb, t_step=i)
+        tube_list, t = rt_growth_rate(sami=sami, exb=exb, t_step=i)
         tubes = []
         tube_dict = {}
         for tube in tube_list:

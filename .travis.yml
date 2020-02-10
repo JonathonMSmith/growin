@@ -16,6 +16,7 @@ before_install:
   - pip install numpy
   - pip install pysat
   - pip install matplotlib
+  - pip install netCDF4
   # Prepare modified sami2py install
   - cd ..
   - echo 'cloning sami2py'
