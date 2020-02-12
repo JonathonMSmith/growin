@@ -88,7 +88,7 @@ def get_drifts(start=2008, stop=2014, clean_level='none', drift_inst=None,
     return drift_inst
 
 
-def get_growth(tag, day, year, lon, exb_drifts, ve01=0, f10=120.0):
+def get_growth(tag, day, year, lon, exb_drifts=None, ve01=0, f10=120.0):
     '''get the sami instrument with growth rates calculated
        checks if there is an existing sami instrument with the appropriate tag
        and loads it. Otherwise it runs the growth rate calculation.
