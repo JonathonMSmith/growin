@@ -39,7 +39,7 @@ pysat
 sami2py
 pyglow
 
-and for the best results I suggest the following:
+and for best results try:
 ```
 pip install future
 pip install apexpy
