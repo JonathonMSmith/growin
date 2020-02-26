@@ -9,13 +9,13 @@ import sami2py
 import growin
 
 # custom functions for pysat instrument to modify the data for use here
-def shift_local_time(inst):
+def _shift_local_time(inst):
     """shift local times so that they are centered on midnight"""
     idx, = np.where(inst['slt'] < 12.)
     inst[idx, 'slt'] += 24.
 
 
-def shift_longitude(inst, offset=None):
+def _shift_longitude(inst, offset=None):
     """shift longitude values some degrees for longitude sector binning
         there has got to be a better way"""
     if offset is None:
@@ -27,7 +27,7 @@ def shift_longitude(inst, offset=None):
     inst[idx_neg, 'glon'] += 360
 
 
-def drift_fix(inst):
+def _drift_fix(inst):
     """in the cnofs data positive drifts are toward earth, so sign change
        not needed for meridional drifts"""
     inst['ionVelocityZ'] *= -1
@@ -74,8 +74,8 @@ def get_drifts(start=2008, stop=2014, clean_level='none', drift_inst=None,
     else:
         drift_inst = growin.DriftInstrument(platform='cnofs', name='ivm',
                                             clean_level=clean_level)
-        drift_inst.custom.add(drift_fix, 'modify')
-        drift_inst.custom.add(shift_longitude, 'modify', offset=offset)
+        drift_inst.custom.add(_drift_fix, 'modify')
+        drift_inst.custom.add(_shift_longitude, 'modify', offset=offset)
     drift_inst.get_drifts(drift_key=drift_key,
                           lon_bins=zone_bounds,
                           season_bins=season_bounds,
