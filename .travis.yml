@@ -10,6 +10,7 @@ addons:
 
 # command to install dependencies
 before_install:
+  - pip install coveralls
   - pip install scipy
   - pip install xarray'<0.12'
   - pip install igrf12
@@ -32,3 +33,5 @@ install:
 # command to run tests
 script:
   - pytest
+after_success:
+  - coveralls
