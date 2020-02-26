@@ -39,7 +39,7 @@ pysat
 sami2py
 pyglow
 
-and for the best results I suggest the following:
+and for best results try:
 ```
 pip install future
 pip install apexpy
@@ -50,7 +50,8 @@ pip install pysat
 pip install igrf12
 
 git clone https://github.com/sami2py/sami2py.git
-cd sami2py/python setup.py install
+cd sami2py/
+python setup.py install
 make -C sami2py/fortran compile
 
 git clone https://github.com/JonathonMSmith/pyglow.git
