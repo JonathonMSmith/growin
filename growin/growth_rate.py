@@ -491,12 +491,12 @@ def run_growth_calc(sami, coefficients=None, ve01=0):
     '''runs the growth rate calculation for a sami2 run. Requires external
        drift information until exb drifts from sami2 are an archived data prod.
 
-    Parameters:
+    Parameters
+    ----------
     sami : (sami2py.Model)
         sami2py model object
     coefficients : (array)
-        10x2 array of fourier coefficients
-        describes the vertical drift function
+        10x2 array of fourier coefficients describe the vertical drift function
     ve01: (float)
         offset or 0th term of fourier fit
     '''
