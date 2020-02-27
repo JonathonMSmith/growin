@@ -4,7 +4,7 @@
 # Full license can be found in License.md
 # -----------------------------------------------------------------------------
 
-from os import path, mkdir, environ, makedirs
+from os import path, mkdir, makedirs
 from setuptools import setup, find_packages
 
 
@@ -17,11 +17,8 @@ def read(fname):
 here = path.abspath(path.dirname(__file__))
 test_data_path = path.join(here, 'growin', 'tests', 'test_data')
 # get environment name to create virtual environment specific archives
-if 'CONDA_DEFAULT_ENV' in environ:
-    env_name = environ['CONDA_DEFAULT_ENV']
-elif 'VIRTUAL_ENV' in environ:
-    env_name = environ['VIRTUAL_ENV']
 
+env_name = os.path.split(sys.prefix)[-1]
 file_path = path.join(path.expanduser('~'), '.growin', env_name)
 
 if not path.isdir(file_path):
