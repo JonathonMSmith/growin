@@ -9,6 +9,7 @@ growin
 """
 
 import os
+import sys
 import logging
 
 __version__ = str('0.1a1')
@@ -16,11 +17,7 @@ __version__ = str('0.1a1')
 # get home directory
 home_dir = os.path.expanduser('~')
 # get environment name
-if 'CONDA_DEFAULT_ENV' in os.environ:
-    env_name = os.environ['CONDA_DEFAULT_ENV']
-elif 'VIRTUAL_ENV' in os.environ:
-    env_name = os.environ['VIRTUAL_ENV']
-# set growin directory path in home directory
+env_name = os.path.split(sys.prefix)[-1]
 growin_dir = os.path.join(home_dir, '.growin', env_name)
 # make sure a growin directory for model output exists
 if not os.path.isdir(growin_dir):
