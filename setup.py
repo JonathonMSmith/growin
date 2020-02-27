@@ -18,7 +18,7 @@ here = path.abspath(path.dirname(__file__))
 test_data_path = path.join(here, 'growin', 'tests', 'test_data')
 # get environment name to create virtual environment specific archives
 
-env_name = os.path.split(sys.prefix)[-1]
+env_name = path.split(sys.prefix)[-1]
 file_path = path.join(path.expanduser('~'), '.growin', env_name)
 
 if not path.isdir(file_path):
