@@ -4,7 +4,8 @@ import warnings
 import numpy as np
 from scipy.optimize import curve_fit
 import xarray as xr
-import pysat
+from datetime import datetime
+from pysat import Instrument
 from pysat.ssnl.avg import median2D as med2D
 
 def make_fourier(na, nb):
@@ -57,7 +58,7 @@ def fourier_fit(local_times, median_drifts, num_co):
 
     return ve01, exb_drifts
 
-class DriftInstrument(pysat.Instrument):
+class DriftInstrument(Instrument):
     """Class that inherits from a pysat instrument that will have an attribute
        corresponding to the median drifts, their deviation, and the fourier
        curve fit for use in the SAMI2 model
@@ -73,9 +74,9 @@ class DriftInstrument(pysat.Instrument):
 
         Parameters
         ----------
-        start : (pysat.datetime)
+        start : (datetime)
             start date for median2d
-        stop : (pysat.datetime)
+        stop : (datetime)
             stop date for median2d
         """
         self.bounds = (start, stop)
@@ -114,10 +115,10 @@ class DriftInstrument(pysat.Instrument):
             for season in range(len(self.season_bins)-1):
                 #constant to subtract from year in start date to maintain
                 #contiguous December solstices
-                start = pysat.datetime(tmpyear, self.season_bins[season], 1)
+                start = datetime(tmpyear, self.season_bins[season], 1)
                 if self.season_bins[season] > self.season_bins[season+1]:
                     tmpyear += 1
-                stop = pysat.datetime(tmpyear, self.season_bins[season+1], 1)
+                stop = datetime(tmpyear, self.season_bins[season+1], 1)
 
                 sea_drift.append(self.fit_drifts(start, stop, coords))
                 #store all of these bins for all years
