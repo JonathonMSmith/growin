@@ -16,6 +16,12 @@
         <img width="50%" src="/banner.png" alt="growin" title="growin"</img>
 </div>
 
+
+[![DOI](https://zenodo.org/badge/174235815.svg)](https://zenodo.org/badge/latestdoi/174235815)
+[![Coverage Status](https://coveralls.io/repos/github/JonathonMSmith/growin/badge.svg?branch=master)](https://coveralls.io/github/JonathonMSmith/growin?branch=master)
+[![Maintainability](https://api.codeclimate.com/v1/badges/c9a94135bded3475dea7/maintainability)](https://codeclimate.com/github/JonathonMSmith/growin/maintainability)
+[![Documentation Status](https://readthedocs.org/projects/growin/badge/?version=latest)](https://growin.readthedocs.io/en/latest/?badge=latest)
+
 #Overview
 
 The flux-tube-integrated linear Rayleigh-Taylor instability (grow)th rate of 
@@ -50,7 +56,8 @@ pip install pysat
 pip install igrf12
 
 git clone https://github.com/sami2py/sami2py.git
-cd sami2py/python setup.py install
+cd sami2py/
+python setup.py install
 make -C sami2py/fortran compile
 
 git clone https://github.com/JonathonMSmith/pyglow.git
