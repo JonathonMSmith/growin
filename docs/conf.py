@@ -60,3 +60,4 @@ MOCK_MODULES = ['numpy', 'sami2py', 'igrf12', 'scipy', 'xarray',
                 'scipy.optimize', 'pysat', 'pysat.ssnl.avg', 'pysat.Instrument']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
+sys.modules['Instrument'] = mock.Mock(Instrument='object')
