@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 from os import path, mkdir, makedirs
+import sys
 from setuptools import setup, find_packages
 
 
