@@ -104,13 +104,9 @@ def get_growth(tag, day, year, lon, exb_drifts=None, ve01=0, f10=120.0):
     lon : (int)
         geo longitude in degrees for SAMI run
     exb_drifts : (10x2 ndarray of floats)
-        Matrix of Fourier series coefficients dependent on solar local time
-        (SLT) in hours where
-        exb_total = exv_drifts[i,0]*cos((i+1)*pi*SLT/12)
-                  + exb_drifts[i,1]*sin((i+1)*pi*SLT/12)
+        Matrix of Fourier series coefficients dependent on solar local time (SLT) in hours where exb_total = exv_drifts[i,0]*cos((i+1)*pi*SLT/12) + exb_drifts[i,1]*sin((i+1)*pi*SLT/12)
     ve01 : (float)
-        offset for Fourier exb drifts, not used by default therefore
-        we are assuming net zero vertical drift
+        offset for Fourier exb drifts, not used by default therefore we are assuming net zero vertical drift
     '''
     path = growin.utils.generate_path('growth', year=year,
                                       lon=lon, day=day)

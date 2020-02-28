@@ -5,7 +5,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 import xarray as xr
 from datetime import datetime
-from pysat import Instrument
+import pysat
 from pysat.ssnl.avg import median2D as med2D
 
 def make_fourier(na, nb):
@@ -58,7 +58,7 @@ def fourier_fit(local_times, median_drifts, num_co):
 
     return ve01, exb_drifts
 
-class DriftInstrument(Instrument):
+class DriftInstrument(pysat.Instrument):
     """Class that inherits from a pysat instrument that will have an attribute
        corresponding to the median drifts, their deviation, and the fourier
        curve fit for use in the SAMI2 model
