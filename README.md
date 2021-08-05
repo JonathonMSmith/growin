@@ -63,6 +63,7 @@ make -C sami2py/fortran compile
 git clone https://github.com/JonathonMSmith/pyglow.git
 cd pyglow
 git checkout fejer_output
+make -C src/pyglow/models source  
 python setup.py install
 ```
 Finally, clone and install growin
