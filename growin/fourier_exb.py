@@ -6,7 +6,7 @@ from scipy.optimize import curve_fit
 import xarray as xr
 from datetime import datetime
 import pysat
-from pysat.ssnl.avg import median2D as med2D
+from pysatSeasons.avg import median2D as med2D
 
 def make_fourier(na, nb):
     """ The function for the curve fit
