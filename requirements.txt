@@ -1,0 +1,8 @@
+apexpy
+future
+igrf12
+matplotlib
+netCDF4
+numpy
+pysat
+sami2py
