@@ -47,13 +47,7 @@ pyglow
 
 and for best results try:
 ```
-pip install future
-pip install apexpy
-pip install netCDF4
-pip install numpy
-pip install matplotlib
-pip install pysat
-pip install igrf12
+pip install -r requirements.txt
 
 git clone https://github.com/sami2py/sami2py.git
 cd sami2py/
