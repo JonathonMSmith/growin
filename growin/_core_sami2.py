@@ -1,5 +1,5 @@
 """functions and variables to run the requisite models and functions to
-calculate the drifts and and from them run the model and then compute the rtgr
+calculate the drifts and and run the sami2 model and then compute the rtgr
 """
 import os
 import pickle
