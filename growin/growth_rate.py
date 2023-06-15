@@ -11,7 +11,7 @@ Jonathon Smith (JS), 20 Sep 2018, Goddard Space Flight Center (GSFC)
 import math
 from datetime import datetime, timedelta
 import numpy as np
-import igrf12
+import igrf # switching from igrf12
 import xarray as xr
 
 """
@@ -114,10 +114,8 @@ class FluxTubeCell():
             'time step'
         '''
         lat, lat_2, lon, alt, alt_2 = ft_bin_loc(sami_data, ftl, ft)
-        mag, atmos, hwm = run_models(sami_data, lat, lon, alt, ftl, ft,
-                                     d_str, t_step)
-        denis = sami_data.deni.values[ftl, ft, :, t_step]
-
+        mag, atmos, hwm, denis = run_models(sami_data, lat, lon, alt, ftl, ft,
+                                            d_str, t_step)
         self.alt = alt
         self.len = ft_length(alt, alt_2, lat, lat_2)
         self.n_n, species = get_n_n(atmos)
@@ -163,9 +161,9 @@ def format_dates(sami, t_step):
     t_step : (int)
         time step for the sami model object
     '''
-    day = sami.day
-    year = sami.year
-    ut = sami.ut[t_step]
+    day = int(sami.day.values)
+    year = sami.year.values
+    ut = sami.ut[t_step].values
     iyd = int((year - (2000 if year > 1999 else 1900)) * 1000) + day
     d_time = datetime(year, 1, 1) + timedelta(days=day-1, seconds=ut*3600)
     d_str = d_time.strftime('%Y-%m-%d')
@@ -374,11 +372,22 @@ def run_models(sami, lat, lon, alt, cell, flux_tube, d_str, t_step):
     t_step : (int)
         time step for sami2
     '''
-    mag = igrf12.igrf(d_str, glat=lat, glon=lon, alt_km=alt)
-    atmos = sami.denn.values[cell, flux_tube, :, t_step]
+    mag = igrf.igrf(d_str, glat=lat, glon=lon, alt_km=alt)
+    if 'denn' in sami.data_vars:
+        atmos = sami.denn.values[cell, flux_tube, :, t_step]
+        denis = sami.deni.values[cell, flux_tube, :, t_step]
+    else:
+        atmos = []
+        denis = []
+        for i1 in range(1, 8):
+            n_var_name = ''.join(['denn', str(i1)])
+            i_var_name = ''.join(['deni', str(i1)])
+            atmos.append(sami[n_var_name][cell, flux_tube, t_step].values)
+            denis.append(sami[i_var_name][cell, flux_tube, t_step].values)
+
     #only the meridional component of wind is used as per Sultan1996
     hwm = sami.u4.values[cell, flux_tube, t_step]
-    return mag, atmos, hwm
+    return mag, atmos, hwm, denis
 
 def eval_tubes(sami, exb, t_step=0):
     """calculate the flux tube integrated quantities for each flux tube needed
@@ -391,7 +400,10 @@ def eval_tubes(sami, exb, t_step=0):
     t_step : (int)
         array index for sami2py object timestep variable
     """
-    sami_data = sami.data
+    if not isinstance(sami, xr.core.dataset.Dataset):
+        sami_data = sami.data
+    else:
+        sami_data = sami
     iyd, d_time, d_str = format_dates(sami, t_step)
     nz = np.shape(sami_data.glat.values)[0]
     nf = np.shape(sami_data.glat.values)[1]
@@ -507,10 +519,13 @@ def run_growth_calc(sami, coefficients=None, ve01=0):
     lon0 = sami.lon0
     for i in range(time_steps):
         t = sami.ut[i]
-        print(str(t)[:3])
+        print(str(t))
         lt = t + lon0/15
         lt = lt % 24
-        exb = exb_calc(coefficients, ve01, lt)
+        if coefficients is None:
+            exb = sami['u1p'][i, 5, 80]
+        else:
+            exb = exb_calc(coefficients, ve01, lt)
         tube_list, t = rt_growth_rate(sami=sami, exb=exb, t_step=i)
         tubes = []
         tube_dict = {}
