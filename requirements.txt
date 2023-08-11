@@ -5,5 +5,4 @@ igrf12
 matplotlib
 netCDF4
 pysat
-sami2py
 pyglow
