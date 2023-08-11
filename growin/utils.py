@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 # Full license can be found in License.md
 # -----------------------------------------------------------------------------
+
+import numpy as np
+
 """ 
 Functions
 -------------------------------------------------------------------------------
@@ -93,3 +96,34 @@ def set_archive_dir(path=None, store=True):
         growin.archive_dir = path
     else:
         raise ValueError('Path does not lead to a valid directory.')
+
+def fwhm(model, fac):
+    """Return the full width half max in both altitude and local time for a
+    growth rate calculation
+
+    Parameters
+    ----------
+    model: xarray dataSet
+    fac: int
+    factor for time conversion to a 24 hour range
+    """
+    # first get the max val
+    max_growth = model.gamma.max()
+    
+    # iterate out in four directions until the growth rate falls below max / 2
+    rt_eq = model.gamma.assign_coords(lt=((model.gamma.ut / fac +
+                                           model.gamma.lon.values / 15) % 24))
+
+    idx = np.where(rt_eq == rt_eq.max())
+
+    half_lts = np.where(rt_eq[0, :, idx[2]] >= max_growth / 2)
+    half_alt = np.where(rt_eq[0, idx[1], :] >= max_growth / 2)
+
+    lt_at_max = rt_eq['lt'][idx[1]]
+    alt_at_max = rt_eq['alt'][idx[2]]
+
+    lt_fwhm = abs(rt_eq['lt'][half_lts[0][-1]] - rt_eq['lt'][half_lts[0][0]])
+    alt_fwhm = rt_eq['alt'][half_alt[0][-1]] - rt_eq['alt'][half_alt[0][0]]
+
+
+    return max_growth, lt_at_max, alt_at_max, lt_fwhm, alt_fwhm
