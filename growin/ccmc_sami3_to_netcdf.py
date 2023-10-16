@@ -1,9 +1,14 @@
 import datetime as dt
 import numpy as np
+import sys
 import xarray as xr
 
-sami3path = '../models/ccmc_run/'
-sz = [304, 124, 96, 193]
+run_name = sys.argv[1]
+if run_name[0:3] != 'Jon':
+    print(' '.join(['invalid run name:', run_name]))
+sami3path = ''.join(['/data/sami3/', run_name, '/'])
+
+sz = [304, 124, 96, 97]
 mod_vars = {'deneu.dat': 'electron density cm^-3', 
             'u1pu.dat': 'meridional ExB velocity cm/s',
             'denn1u.dat': 'H density cm^-3',
@@ -54,7 +59,7 @@ lat_coord = sami3data(glat, sz[0:3])
 lon_coord = sami3data(glon, sz[0:3])
 zalt_coord = sami3data(zalt, sz[0:3])
 
-sami_dat = xr.Dataset(coords = dict(ut = (['nt'], ut), 
+sami_out = xr.Dataset(coords = dict(ut = (['nt'], ut), 
                                     glat=(['nz', 'nf', 'nlt'], lat_coord),
                                     glon=(['nz', 'nf', 'nlt'], lon_coord),
                                     zalt=(['nz', 'nf', 'nlt'], zalt_coord)))
@@ -66,20 +71,25 @@ for var_file in mod_vars:
     tmp_var = sami3data(buff, sz)
     # For reference, for some data there is reduced dimension
     # TEC = sami3data_grid(sami3_tec,sz[1:4])
-    sami_dat[var_file[:-5]] = (['nz', 'nf', 'nlt', 'nt'], tmp_var,
+    sami_out[var_file[:-5]] = (['nz', 'nf', 'nlt', 'nt'], tmp_var,
                                {'desc': mod_vars[var_file]})
 
-sami_dat = sami_dat.rename({'u1':'u4'})
+sami_out = sami_out.rename({'u1':'u4'})
 
-apex_ind = sami_dat.zalt[:, 0, 0].argmax()
-lon_ind = abs(sami_dat.glon[apex_ind, 0, :] - 284).argmin()
-sami_dat = sami_dat.isel(nlt=lon_ind)
+apex_ind = sami_out.zalt[:, 0, 0].argmax()
+lon_ind = abs(sami_out.glon[apex_ind, 0, :] - 284).argmin()
+sami_out = sami_out.isel(nlt=lon_ind)
+
 with open('{0}{1}'.format(sami3path, 'SAMI3_list')) as f:
     lines  = f.readlines()
     date = date = lines[1][11:21]
     day = dt.datetime.strptime(date, '%Y/%m/%d').timetuple().tm_yday
     year = dt.datetime.strptime(date, '%Y/%m/%d').year
-sami_dat['day'] = day
-sami_dat['year'] = year
-sami_dat.attrs['lon0'] = sami_dat.glon.mean().values
-sami_dat.to_netcdf('ccmc_sami.nc')
+
+date_str = '{:d}{:03d}'.format(year, day)
+sami_out['day'] = day
+sami_out['year'] = year
+lon = int(sami_out.glon.mean().values)
+sami_out.attrs['lon0'] = lon 
+sami_out.to_netcdf(''.join([sami3path, 'sami3_merged_', date_str,
+                            '_', str(lon), '.nc']))
