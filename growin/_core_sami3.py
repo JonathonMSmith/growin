@@ -65,7 +65,7 @@ def get_growth(sami_filename):
                         " does not exist")
 
     sami_out = gr.run_growth_calc(sami)
-    sami_out.to_netcdf(sami_filename)
+    sami_out.to_netcdf(''.join([sami_filename[:-3], 'growth.nc']))
 
 def get_growth_wedge(sami_filename):
     """Get growth rates for a wedge of longitudes"""
@@ -80,5 +80,7 @@ def get_growth_wedge(sami_filename):
     for lon in sami.nl:
         slice_growth = gr.run_growth_calc(sami.sel(nl=lon))
         slice_list.append(slice_growth)
-    grow_out = xr.concat(slice_list, dim='nl')
+        break
+    grow_out = xr.concat(slice_list, dim='lon')
     grow_out.to_netcdf(''.join([sami_filename[:-3], 'growth.nc']))
+    return grow_out
