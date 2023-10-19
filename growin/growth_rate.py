@@ -423,10 +423,9 @@ def eval_tubes(sami, exb, t_step=0):
     tube_list = []
     for ft in range(nf):
         max_alt = np.amax(sami_data.zalt.values[:, ft])
-        min_alt = np.amin(sami_data.zalt.values[:, ft])
         if max_alt <= 200:
             continue
-        if max_alt > 600:
+        if max_alt > 650:
             continue
         tube = FluxTube(sami_data, ft, max_alt, exb)
         for ftl in range(nz-1):
