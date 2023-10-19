@@ -32,8 +32,8 @@ R_e = 6.38 * 10**3
 
 class FluxTube():
     """flux tube integrated (fti) quantities
-       all of these have the same shape that is the number of altitude bins by the
-       number of time steps
+       all of these have the same shape that is the number of altitude bins by
+       the number of time steps
 
     Object variables
     ----------------
@@ -114,8 +114,8 @@ class FluxTubeCell():
             'time step'
         '''
         lat, lat_2, lon, alt, alt_2 = ft_bin_loc(sami_data, ftl, ft)
-        mag, atmos, hwm, denis = run_models(sami_data, lat, lon, alt, ftl, ft,
-                                            d_str, t_step)
+        mag, atmos, hwm, denis, nus = run_models(sami_data, lat, lon, alt, ftl,
+                                                 ft, d_str, t_step)
         self.alt = alt
         self.len = ft_length(alt, alt_2, lat, lat_2)
         self.n_n, species = get_n_n(atmos)
@@ -124,12 +124,18 @@ class FluxTubeCell():
         self.A = np.mean([m_i[i] for i in species])
         self.B = float(mag.total) * 10**(-9) #convert nT output to T
         self.phi = (90 - float(mag.incl)) * math.pi / 180 #dip angle radians
-        self.sig = sigma_tot(denis=denis, n_n=self.n_n, n_e=self.n_e, B=self.B,
-                             A=self.A, T_e=self.t_e)
         self.wind = hwm / 10**2 #convert to m/s
-        self.nu = 0
-        for n_i in denis:
-            self.nu += nu_i(n_i, self.n_n, self.A)
+
+        # TODO: test this collision frequency code with sami3 data that has nu
+        self.sig = sigma_tot(denis=denis, n_n=self.n_n, n_e=self.n_e, B=self.B,
+                             A=self.A, T_e=self.t_e, nus=nus)
+        if nus is None:
+            self.nu = 0
+            for n_i in denis:
+                self.nu += nu_i(n_i, self.n_n, self.A)
+        else:
+            self.nu = np.sum(nus)
+
         self.r_local = r_local(denis, alt)
 
 def ft_bin_loc(sami_data, ftl, ft):
@@ -250,7 +256,6 @@ def r_local(denis, alt):
     for i, n_i in enumerate(denis):
         if i == 2 | i == 3 | i == 5:
             n_mol += n_i
-        
     return n_mol*2*10**(-7)
 
 
@@ -259,7 +264,7 @@ def omega(B, particle):
     Parameters
     ----------
     B : (float)
-        total electron density cm-3       
+        total electron density cm-3
     particle : (str)
         particle name to get the correct gyrofrequency
     '''
@@ -373,6 +378,8 @@ def run_models(sami, lat, lon, alt, cell, flux_tube, d_str, t_step):
         time step for sami2
     '''
     mag = igrf.igrf(d_str, glat=lat, glon=lon, alt_km=alt)
+    hwm = sami.u4.values[cell, flux_tube, t_step]
+
     if 'denn' in sami.data_vars:
         atmos = sami.denn.values[cell, flux_tube, :, t_step]
         denis = sami.deni.values[cell, flux_tube, :, t_step]
@@ -384,10 +391,16 @@ def run_models(sami, lat, lon, alt, cell, flux_tube, d_str, t_step):
             i_var_name = ''.join(['deni', str(i1)])
             atmos.append(sami[n_var_name][cell, flux_tube, t_step].values)
             denis.append(sami[i_var_name][cell, flux_tube, t_step].values)
+    if 'nuin' in sami.data_vars:
+        nus = []
+        for i1 in range(1, 8):
+            nu_var_name = ''.join(['nuin', str(i1)])
+            nus.append(sami[nu_var_name][cell, flux_tube, t_step].values)
+    else:
+        nus = None
 
     #only the meridional component of wind is used as per Sultan1996
-    hwm = sami.u4.values[cell, flux_tube, t_step]
-    return mag, atmos, hwm, denis
+    return mag, atmos, hwm, denis, nus
 
 def eval_tubes(sami, exb, t_step=0):
     """calculate the flux tube integrated quantities for each flux tube needed
@@ -410,7 +423,10 @@ def eval_tubes(sami, exb, t_step=0):
     tube_list = []
     for ft in range(nf):
         max_alt = np.amax(sami_data.zalt.values[:, ft])
+        min_alt = np.amin(sami_data.zalt.values[:, ft])
         if max_alt <= 200:
+            continue
+        if min_alt > 600:
             continue
         tube = FluxTube(sami_data, ft, max_alt, exb)
         for ftl in range(nz-1):
