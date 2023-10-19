@@ -418,15 +418,15 @@ def eval_tubes(sami, exb, t_step=0):
     else:
         sami_data = sami
     iyd, d_time, d_str = format_dates(sami, t_step)
-    nz = np.shape(sami_data.glat.values)[0]
-    nf = np.shape(sami_data.glat.values)[1]
+    nz = sami_data.nz.shape[0]
+    nf = sami_data.nf.shape[0]
     tube_list = []
     for ft in range(nf):
         max_alt = np.amax(sami_data.zalt.values[:, ft])
         min_alt = np.amin(sami_data.zalt.values[:, ft])
         if max_alt <= 200:
             continue
-        if min_alt > 600:
+        if max_alt > 600:
             continue
         tube = FluxTube(sami_data, ft, max_alt, exb)
         for ftl in range(nz-1):
@@ -532,9 +532,14 @@ def run_growth_calc(sami, coefficients=None, ve01=0):
     rtgr_sets = []
     if coefficients is None:
         coefficients = np.zeros((10, 2))
-    lon0 = sami.lon0
+    if "lon0" in sami.attrs:
+        lon0 = sami.lon0
+    else:
+        lon0 = np.mean(sami.glon)
+
     for i in range(time_steps):
         t = sami.ut[i]
+        print(i)
         print(str(t))
         lt = t + lon0/15
         lt = lt % 24

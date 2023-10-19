@@ -65,6 +65,22 @@ def get_growth(sami_filename):
                         " does not exist")
 
     sami_out = gr.run_growth_calc(sami)
+    sami_out.to_netcdf(''.join([sami_filename[:-3], 'growth.nc']))
 
-    return sami_out
-
+def get_growth_wedge(sami_filename):
+    """Get growth rates for a wedge of longitudes"""
+    if os.path.isfile(sami_filename):
+        sami = xr.load_dataset(sami_filename, decode_times=False)
+        sami = sami.rename({'hrut':'ut', 'vnphi':'u4'})
+        sami = sami.transpose()
+    else:
+        raise NameError("Invalid Filname, the file:" + sami_filename +
+                        " does not exist")
+    slice_list = []
+    for lon in sami.nl:
+        slice_growth = gr.run_growth_calc(sami.sel(nl=lon))
+        slice_list.append(slice_growth)
+        break
+    grow_out = xr.concat(slice_list, dim='lon')
+    grow_out.to_netcdf(''.join([sami_filename[:-3], 'growth.nc']))
+    return grow_out
