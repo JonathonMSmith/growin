@@ -90,6 +90,7 @@ class FluxTube():
         self.K = 0
         self.R = 0
 
+
 class FluxTubeCell():
     """one cell or bin of a flux tube from the sami model and all of its
        attributes are stored in an object for easy reference and use
@@ -122,9 +123,9 @@ class FluxTubeCell():
         self.n_e = np.sum(denis)
         self.t_e = sami_data.te.values[ftl, ft, t_step]
         self.A = np.mean([m_i[i] for i in species])
-        self.B = float(mag.total) * 10**(-9) #convert nT output to T
-        self.phi = (90 - float(mag.incl)) * math.pi / 180 #dip angle radians
-        self.wind = hwm / 10**2 #convert to m/s
+        self.B = float(mag.total) * 10**(-9)  # convert nT output to T
+        self.phi = (90 - float(mag.incl)) * math.pi / 180  # dip angle radians
+        self.wind = hwm / 10**2  # convert to m/s
 
         # TODO: test this collision frequency code with sami3 data that has nu
         self.sig = sigma_tot(denis=denis, n_n=self.n_n, n_e=self.n_e, B=self.B,
@@ -137,6 +138,7 @@ class FluxTubeCell():
             self.nu = np.sum(nus)
 
         self.r_local = r_local(denis, alt)
+
 
 def ft_bin_loc(sami_data, ftl, ft):
     """returns the location and spatial extent of current bin
@@ -154,26 +156,33 @@ def ft_bin_loc(sami_data, ftl, ft):
     lat_2 = sami_data.glat.values[ftl + 1, ft]
     lon = sami_data.glon.values[ftl, ft]
     alt = sami_data.zalt.values[ftl, ft]
-    alt_2 = sami_data.zalt.values[ftl+1, ft]
+    alt_2 = sami_data.zalt.values[ftl + 1, ft]
     return lat, lat_2, lon, alt, alt_2
+
 
 def format_dates(sami, t_step):
     '''returns the date in all the required formats for different packages
 
     Parameters
     ----------
-    sami : (sami2py.Model)
+    sami : (sami2py.Model or xarray.Dataset)
         the sami model being used to calculate growth rates
     t_step : (int)
         time step for the sami model object
     '''
-    day = int(sami.day.values)
-    year = sami.year.values
-    ut = sami.ut[t_step].values
+    if not isinstance(sami, xr.Dataset):
+        year = int(sami.MetaData['Day'][5:])
+        day = int(sami.MetaData['Day'][0:3])
+        ut = sami.ut[t_step]
+    else:
+        day = int(sami.day.values)
+        year = sami.year.values
+        ut = sami.ut[t_step].values
     iyd = int((year - (2000 if year > 1999 else 1900)) * 1000) + day
-    d_time = datetime(year, 1, 1) + timedelta(days=day-1, seconds=ut*3600)
+    d_time = datetime(year, 1, 1) + timedelta(days=day - 1, seconds=ut * 3600)
     d_str = d_time.strftime('%Y-%m-%d')
     return iyd, d_time, d_str
+
 
 def ft_length(alt_1, alt_2, lat_1, lat_2):
     """law of cosines for determining linear extent of flux tube (ft) bin
@@ -189,11 +198,12 @@ def ft_length(alt_1, alt_2, lat_1, lat_2):
     lat_2 : (float)
         latitude of next flux tube cell on same flux tube in degrees
     """
-    delta_lat = (lat_2-lat_1) * math.pi / 180
+    delta_lat = (lat_2 - lat_1) * math.pi / 180
     alt_1 += R_e
     alt_2 += R_e
     lenkm = alt_1**2 + alt_2**2 - 2 * alt_1 * alt_2 * math.cos(delta_lat)
     return math.sqrt(lenkm) * 10**3
+
 
 def nu_i(n_i, n_n, A):
     """approximate calculation of ion collision frequency from Kelley 89
@@ -207,7 +217,8 @@ def nu_i(n_i, n_n, A):
     A : (int)
         mean neutral molecular mass in atomic mass units
     """
-    return 2.6 * 10**(-9) * (n_i + n_n) * A**(-1/2)
+    return 2.6 * 10**(-9) * (n_i + n_n) * A**(-1 / 2)
+
 
 def nu_e(n_n, n_e, T_e):
     """approximate calculation of electron collision frequency from Kelly 89
@@ -221,9 +232,10 @@ def nu_e(n_n, n_e, T_e):
     T_e : (float)
         electron temperature K
     """
-    nu_e_n = 5.4 * 10**(-10) * n_n * T_e**(1/2)
-    nu_e_i = (34 + 4.18 * math.log(T_e**3 / n_e)) * n_e * T_e**(-3/2)
+    nu_e_n = 5.4 * 10**(-10) * n_n * T_e**(1 / 2)
+    nu_e_i = (34 + 4.18 * math.log(T_e**3 / n_e)) * n_e * T_e**(-3 / 2)
     return nu_e_n + nu_e_i
+
 
 def g_e_L(sami_data, ft):
     """gravity at the bin altitude
@@ -233,13 +245,14 @@ def g_e_L(sami_data, ft):
     Parameters
     ----------
     sami_data : (xarray.dataset.Dataset)
-        the sami model being used to calculate growth rates       
+        the sami model being used to calculate growth rates
     ft : (int)
         'flux tube' flux tube index for SAMI
     """
     apex_alt = np.amax(sami_data.zalt[:, ft])
     L = (apex_alt + R_e) / R_e
     return g_0 / L**2
+
 
 def r_local(denis, alt):
     """Local recombination from Sultan eq 21 alpha*n_mol
@@ -249,14 +262,18 @@ def r_local(denis, alt):
        n_mol is the concentration of molecular ions
        alpha = 2*10**(-7) according to Sultan '92
        alpha ~ 10**(-7) according to Risbeth & Garriott '69
+
+       according to sami3 output deni[2] is NO, deni[3] is O2
     """
     n_mol = 0
-    if alt < 200:
+    # TODO get the F region height from the model somehow to use
+    # according to Sultan, Rlocal is set to 0 in the F region
+    if alt > 200:
         return 0
     for i, n_i in enumerate(denis):
-        if i == 2 | i == 3 | i == 5:
+        if i == 2 or i == 3:
             n_mol += n_i
-    return n_mol*2*10**(-7)
+    return n_mol * 2 * 10**(-7)
 
 
 def omega(B, particle):
@@ -273,7 +290,8 @@ def omega(B, particle):
     else:
         return q_e * B / (m_i[particle] * amu)
 
-def sigma_tot(denis, n_n, n_e, B, A, T_e):
+
+def sigma_tot(denis, n_n, n_e, B, A, T_e, nus):
     """calculate thetotal Pedersen conductivity at location in mho/m
 
     Parameters
@@ -290,15 +308,21 @@ def sigma_tot(denis, n_n, n_e, B, A, T_e):
         average neutral density in amus
     T_e:
         electron temperature in Kelvin
+    nus:
+        collision frequencies from sami3 output
     """
     sig_tot = 0
     k_e = omega(B, 'electron') / nu_e(n_n, n_e, T_e)
     for i, n_i in enumerate(denis):
         if n_i > 0:
-            k_i = omega(B, sami_enumerate[i]) / nu_i(n_i, n_n, A)
+            if nus is None:
+                k_i = omega(B, sami_enumerate[i]) / nu_i(n_i, n_n, A)
+            else:
+                k_i = omega(B, sami_enumerate[i] / nus[i])
             sig_tot += n_i * k_i / (1 + k_i**2)
     sig_tot += n_e * k_e / (1 + k_e**2)
     return 10**6 * sig_tot * q_e / B
+
 
 def get_n_n(nn):
     """
@@ -317,13 +341,16 @@ def get_n_n(nn):
             species.append(sami_enumerate[n])
     return n_n, species
 
-def calc_growth_rate(tube):
+
+def calc_growth_rate(tube, recomb=True):
     """the growth rate equation from Sultan 96
 
     Parameters
     ----------
     tube : (FluxTube)
         flux tube object
+    recomb: bool
+        wether or not to include recombination
 
     Variables used
     ----------
@@ -350,9 +377,14 @@ def calc_growth_rate(tube):
     nu_eff = tube.nu_ef
     K_F = tube.K
     R_T = tube.R
+    
+    if recomb:
+        gamma = sig_F_P / sig_total * (V - U_L + g_e / nu_eff) * K_F - R_T
+    else:
+        gamma = sig_F_P / sig_total * (V - U_L + g_e / nu_eff) * K_F
 
-    gamma = sig_F_P / sig_total * (V - U_L + g_e/nu_eff) * K_F - R_T
     return gamma
+
 
 def run_models(sami, lat, lon, alt, cell, flux_tube, d_str, t_step):
     '''run all required models to get quantities not contained in SAMI2
@@ -399,8 +431,9 @@ def run_models(sami, lat, lon, alt, cell, flux_tube, d_str, t_step):
     else:
         nus = None
 
-    #only the meridional component of wind is used as per Sultan1996
+    # only the meridional component of wind is used as per Sultan1996
     return mag, atmos, hwm, denis, nus
+
 
 def eval_tubes(sami, exb, t_step=0):
     """calculate the flux tube integrated quantities for each flux tube needed
@@ -418,38 +451,59 @@ def eval_tubes(sami, exb, t_step=0):
     else:
         sami_data = sami
     iyd, d_time, d_str = format_dates(sami, t_step)
-    nz = sami_data.nz.shape[0]
-    nf = sami_data.nf.shape[0]
+    if hasattr(sami_data, 'nz'):
+        nz = sami_data.nz.shape[0]
+        nf = sami_data.nf.shape[0]
+    else:
+        nz = sami_data.z.shape[0]
+        nf = sami_data.f.shape[0]
     tube_list = []
     for ft in range(nf):
         max_alt = np.amax(sami_data.zalt.values[:, ft])
         if max_alt <= 200:
             continue
-        if max_alt > 650:
+        if max_alt > 600:
             continue
+
+        print(''.join(['max alt: ', str(max_alt)]))
         tube = FluxTube(sami_data, ft, max_alt, exb)
-        for ftl in range(nz-1):
+        for ftl in range(nz - 1):
             ftc = FluxTubeCell(sami_data, ftl, ft, iyd, d_str, t_step)
-            #Reimann sum values for total flux tube
+            # Reimann sum values for total flux tube
             tube.U += ftc.wind * math.cos(ftc.phi) * ftc.len * ftc.sig
-            #factor of 100 to convert ftc.len from m to cm
+            # factor of 100 to convert ftc.len from m to cm
+            # this is only used when a species density is used
             tube.N += ftc.n_e * ftc.len * 10**2
             tube.sig_total += ftc.sig * ftc.len
-            tube.R += ftc.r_local * ftc.n_e * ftc.len * 10**2
-            #Reimann sum values for F region
+            tube.R += ftc.r_local * ftc.n_e * ftc.len
+            # Reimann sum values for F region
             if ftc.alt > 200:
                 tube.sig_F += ftc.sig * ftc.len
                 tube.nu_ef += ftc.nu * ftc.n_e * ftc.len * 10**2
 
-        #U is weighted by the total flux tube integrated Pedersen conductivity
+        # U is weighted by the total flux tube integrated Pedersen conductivity
         tube.U = tube.U / tube.sig_total
         tube.sig_ratio = tube.sig_F / tube.sig_total
-        #nu_ef and R are weighted by the flux tube integrated electron density
+        # nu_ef and R are weighted by the flux tube integrated electron density
         tube.nu_ef = tube.nu_ef / tube.N
         tube.R = tube.R / tube.N
         tube.g_nu = tube.g / tube.nu_ef
+        if 'u1p' in list(sami_data.keys()):
+            tmp_V = float(sami_data.isel(nt=t_step, nz=152, nf=ft)['u1p'])
+            tube.V = tmp_V / 100  # sami3 exb is in cm/s
+#            print('exb from sami3')
+        if 'u1' in list(sami_data.keys()):
+            tmp_V = float(sami_data.isel(ut=t_step, z=50, f=ft)['u1'])
+            tube.V = tmp_V / 100  # sami2 exb is in cm/s
+#            print('exb from sami2')
+#        print(''.join(['V: ', str(tube.V)]))
+#        print(''.join(['U: ', str(tube.U)]))
+#        print(''.join(['N: ', str(tube.N)]))
+#        print(''.join(['sig_total: ', str(tube.sig_total)]))
+#        print(''.join(['R: ', str(tube.R)]))
         tube_list.append(tube)
     return tube_list, d_time
+
 
 def rt_growth_rate(sami, exb, t_step=0):
     """calculate flux tube integrated electron density altitude gradient
@@ -490,10 +544,13 @@ def rt_growth_rate(sami, exb, t_step=0):
         K = (1 / N_e_1) * (dN_e / dh)
         tube_list[ft].K = K
 
-        #with all the requisite variables calculate the growth rate
+        # with all the requisite variables calculate the growth rate
         gam = calc_growth_rate(tube_list[ft])
+        gam_no_r = calc_growth_rate(tube_list[ft], recomb=False)
         tube_list[ft].gamma = gam
+        tube_list[ft].gamma_no_r = gam_no_r
     return tube_list, d_time
+
 
 def exb_calc(coefficients, ve01, t):
     '''
@@ -510,9 +567,10 @@ def exb_calc(coefficients, ve01, t):
     for i, term in enumerate(coefficients):
         a = term[0]
         b = term[1]
-        exb += ((a * np.cos((i+1) * t * np.pi / 12))
-              + (b * np.sin((i+1) * t * np.pi / 12)))
+        exb += ((a * np.cos((i + 1) * t * np.pi / 12))
+                + (b * np.sin((i + 1) * t * np.pi / 12)))
     return exb
+
 
 def run_growth_calc(sami, coefficients=None, ve01=0):
     '''runs the growth rate calculation for a sami2 run. Requires external
@@ -531,21 +589,23 @@ def run_growth_calc(sami, coefficients=None, ve01=0):
     rtgr_sets = []
     if coefficients is None:
         coefficients = np.zeros((10, 2))
-    if "lon0" in sami.attrs:
+
+    if hasattr(sami, 'MetaData'):
+        lon0 = float(sami.MetaData['Longitude'])
+    elif 'glon' in sami.coords.keys():
+        lon0 = np.mean(sami.glon)
+    elif hasattr(sami, 'attrs') and "lon0" in sami.attrs:
         lon0 = sami.lon0
     else:
         lon0 = np.mean(sami.glon)
 
+    print(lon0)
     for i in range(time_steps):
         t = sami.ut[i]
         print(i)
-        print(str(t))
-        lt = t + lon0/15
+        lt = t + lon0 / 15
         lt = lt % 24
-        if coefficients is None:
-            exb = sami['u1p'][i, 5, 80]
-        else:
-            exb = exb_calc(coefficients, ve01, lt)
+        exb = exb_calc(coefficients, ve01, lt)
         tube_list, t = rt_growth_rate(sami=sami, exb=exb, t_step=i)
         tubes = []
         tube_dict = {}
@@ -553,15 +613,19 @@ def run_growth_calc(sami, coefficients=None, ve01=0):
             tubes.append(tube.__dict__)
         for k in tubes[0]:
             tube_dict[k] = list(q[k] for q in tubes)
-        coords = [('alt', tube_dict['alt'])]
+        coords = dict(alt=('nf', tube_dict['alt']))
         tmp_dict = {}
         for key in tube_dict:
             if key == 'alt':
                 continue
-            tmp_dict[key] = xr.DataArray(tube_dict[key], coords)
+            tmp_dict[key] = xr.DataArray(tube_dict[key], coords, dims='nf')
         rtgr_sets.append(xr.Dataset(tmp_dict))
-    rtgr_arr = xr.concat(rtgr_sets, 'ut')
-    rtgr_arr = rtgr_arr.assign_coords(ut=(sami.ut))
-    rtgr_arr = rtgr_arr.expand_dims('lon')
-    rtgr_arr = rtgr_arr.assign_coords(lon=([lon0]))
+    rtgr_arr = xr.concat(rtgr_sets, 'nt')
+    if isinstance(sami.ut, np.ndarray):
+        rtgr_arr = rtgr_arr.assign_coords(ut=('nt', sami.ut))
+    else:
+        rtgr_arr = rtgr_arr.assign_coords(ut=('nt', sami.ut.values))
+    rtgr_arr = rtgr_arr.expand_dims('nl')
+    rtgr_arr = rtgr_arr.assign_coords(lon=('nl', [lon0]))
+    print(rtgr_arr)
     return rtgr_arr

@@ -47,8 +47,8 @@ with open(os.path.join(growin_dir, 'test_data_path.txt'), 'r') as f:
 
 # import main functions
 try:
-    from growin import _core, utils, fourier_exb, growth_rate
+    from growin import utils, fourier_exb, growth_rate
+    from growin._core import slice_of_growth
     from growin.fourier_exb import DriftInstrument
-    from growin._core import get_growth_rates_survey, get_growth
 except ImportError as errstr:
     logging.exception('problem importing growin: ' + str(errstr))

@@ -5,7 +5,6 @@ import os
 import pickle
 import datetime
 import numpy as np
-import sami2py
 import growin
 
 # custom functions for pysat instrument to modify the data for use here
@@ -88,7 +87,7 @@ def get_drifts(start=2008, stop=2014, clean_level='none', drift_inst=None,
     return drift_inst
 
 
-def get_growth(tag, day, year, lon, exb_drifts=None, ve01=0, f10=120.0):
+def run_sami2_and_get_growth(tag, day, year, lon, exb_drifts=None, ve01=0, f10=120.0):
     '''get the sami instrument with growth rates calculated
        checks if there is an existing sami instrument with the appropriate tag
        and loads it. Otherwise it runs the growth rate calculation.
@@ -226,6 +225,35 @@ def get_growth_rates_survey(start: int, stop: int, clean_level: str,
                     exb_drifts = fit_fejer(year, day, lon)
 
                 tag = clean_level + '_' + drift_key
-                sami = get_growth(tag=tag, day=day, year=year, lon=lon,
-                                  exb_drifts=exb_drifts)
-    return sami
+#                sami = get_growth(tag=tag, day=day, year=year, lon=lon,
+#                                  exb_drifts=exb_drifts)
+#return sami
+
+def get_growth(sami2):
+    """
+    Parameters
+    ----------
+    sami2: sami2py model object
+
+    Returns
+    ----------
+    sami2py model object with gamma (RT growth rate) added
+    """
+    import sami2py
+
+    # The ExB drifts are not currently output with sami2 so we have to calc.
+    year = sami2.MetaData['Day'][5:]
+    day = sami2.MetaData['Day'][0:3]
+    lon = float(sami2.MetaData['Longitude'])
+    tag = sami2.MetaData['Model Run Name']
+    if 'u1' not in sami2.data.variables:
+        exb_drifts = fit_fejer(int(year), int(day), float(lon))
+    else:
+        exb_drifts = None
+    name_lon = str(int(lon))
+    out_fname = os.path.join(sami2py.archive_dir, tag, ''.join(['lon', name_lon]),
+                             ''.join([year, '_', day]), 'growth.nc')
+
+    growth = growin.growth_rate.run_growth_calc(sami2, exb_drifts)
+    growth.to_netcdf(out_fname)
+    return growth
