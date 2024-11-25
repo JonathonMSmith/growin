@@ -7,10 +7,11 @@ import sys
 import urllib.request
 import xarray as xr
 
-RUN_NAME = sys.argv[1]
+RUN_NAME = 'SAMI3-TIEGCM-01_2023-03-TP-01_081823_IT_1'
+# RUN_NAME = sys.argv[1]
 #if RUN_NAME[0:3] != 'Jon':
 #    print(' '.join(['invalid run name:', RUN_NAME]))
-SAMI3PATH = ''.join(['/data/sami3/', RUN_NAME, '/'])
+SAMI3PATH = ''.join(['/Volumes/Expansion/data/sami3/', RUN_NAME, '/'])
 NUM_DAYS=6
 # this is the size for the iconTIEGCM runs sz = [304, 124, 96, 25]
 SZ = [304, 124, 96, 1+96*NUM_DAYS]
@@ -117,11 +118,11 @@ def combine_regridded_netcdf(sami3path, sz, reg_vars, zone = (270, 310)):
 
     time = np.loadtxt(sami3path + 'time.dat')
     ut = time[:, 1] + time[:, 2] / 60 + time[:, 3] / 3600
-    glat = '{0}{1}'.format(sami3path, 'glat0.dat')
-    glon = '{0}{1}'.format(sami3path, 'glon0.dat')
-    zalt = '{0}{1}'.format(sami3path, 'zalt0.dat')
-    hmf2 = '{0}{1}'.format(sami3path, 'hmf2u.dat')
-    tec = '{0}{1}'.format(sami3path, 'tecu.dat')
+    glat = os.path.join(sami3path, 'glat0.dat')
+    glon = os.path.join(sami3path, 'glon0.dat')
+    zalt = os.path.join(sami3path, 'zalt0.dat')
+    hmf2 = os.path.join(sami3path, 'hmf2u.dat')
+    tec = os.path.join(sami3path, 'tecu.dat')
     lat_coord = sami3data_grid(glat, sz[0:3])
     lon_coord = sami3data_grid(glon, sz[0:3])
     zalt_coord = sami3data_grid(zalt, sz[0:3])
@@ -134,12 +135,49 @@ def combine_regridded_netcdf(sami3path, sz, reg_vars, zone = (270, 310)):
                           data_vars=dict(hmf2=(['nx', 'nl', 'nt'], hmf2_var),
                                          tec=(['nx', 'nl', 'nt'], tec_var)))
     apex_ind = sami_out.zalt[:, 0, 0].argmax()
-    lon_ind, = np.where((sami_out.glon[apex_ind, 0, :] > zone[0]) & 
+    lon_ind, = np.where((sami_out.glon[apex_ind, 0, :] > zone[0]) &
                        (sami_out.glon[apex_ind, 0, :] < zone[1]))
     sami_out = sami_out.isel(nl=lon_ind)
     lon = int(sami_out.glon.mean().values)
     sami_out.to_netcdf(''.join([sami3path, 'sami3_reg_merged_',
                                 '_', str(lon), '.nc']))
+
+
+def combine_global_regridded_netcdf(sami3path, sz, reg_vars):
+    """
+    Parameters
+    ----------
+    sami3path: str
+        path to sami3 data output
+    sz: list
+        dimensions of sami3 data to reshape .dat files
+    reg_vars: dict
+        dictionary containing regridded variables of interest and their units
+    zone: tuple
+        longitude bounds for downslection
+    """
+
+    time = np.loadtxt(sami3path + 'time.dat')
+    ut = time[:, 1] + time[:, 2] / 60 + time[:, 3] / 3600
+    glat = os.path.join(sami3path, 'glat0.dat')
+    glon = os.path.join(sami3path, 'glon0.dat')
+    zalt = os.path.join(sami3path, 'zalt0.dat')
+    hmf2 = os.path.join(sami3path, 'hmf2u.dat')
+    tec = os.path.join(sami3path, 'tecu.dat')
+    lat_coord = sami3data_grid(glat, sz[0:3])
+    lon_coord = sami3data_grid(glon, sz[0:3])
+    zalt_coord = sami3data_grid(zalt, sz[0:3])
+    hmf2_var = sami3data_grid(hmf2, sz[1:4])
+    tec_var = sami3data_grid(tec, sz[1:4])
+    sami_out = xr.Dataset(coords=dict(ut=(['nt'], ut),
+                                      glat=(['nx', 'ny', 'nl'], lat_coord),
+                                      glon=(['nx', 'ny', 'nl'], lon_coord),
+                                      zalt=(['nx', 'ny', 'nl'], zalt_coord)),
+                          data_vars=dict(hmf2=(['nx', 'nl', 'nt'], hmf2_var),
+                                         tec=(['nx', 'nl', 'nt'], tec_var)))
+    sami_out.to_netcdf(os.path.join(sami3path, 'sami3_reg_merged.nc'))
+
+    return
 
 
 
@@ -158,11 +196,11 @@ def combine_in_netcdf(sami3path, sz, mod_vars, zone= (270, 310)):
     """
     time = np.loadtxt(sami3path + 'time.dat')
     ut = time[:, 1] + time[:, 2] / 60 + time[:, 3] / 3600
-    glat = '{0}{1}'.format(sami3path, 'glatu.dat')
-    glon = '{0}{1}'.format(sami3path, 'glonu.dat')
-    mlat = '{0}{1}'.format(sami3path, 'blatu.dat')
-    mlon = '{0}{1}'.format(sami3path, 'blonu.dat')
-    zalt = '{0}{1}'.format(sami3path, 'zaltu.dat')
+    glat = os.path.join(sami3path, 'glatu.dat')
+    glon = os.path.join(sami3path, 'glonu.dat')
+    mlat = os.path.join(sami3path, 'blatu.dat')
+    mlon = os.path.join(sami3path, 'blonu.dat')
+    zalt = os.path.join(sami3path, 'zaltu.dat')
     lat_coord = sami3data(glat, sz[0:3])
     lon_coord = sami3data(glon, sz[0:3])
     mlat_coord = sami3data(mlat, sz[0:3])
@@ -175,14 +213,14 @@ def combine_in_netcdf(sami3path, sz, mod_vars, zone= (270, 310)):
                                       mlon=(['nz', 'nf', 'nlt'], mlon_coord),
                                       zalt=(['nz', 'nf', 'nlt'], zalt_coord)))
     apex_ind = sami_out.zalt[:, 0, 0].argmax()
-    lon_ind, = np.where((sami_out.glon[apex_ind, 0, :] > zone[0]) & 
+    lon_ind, = np.where((sami_out.glon[apex_ind, 0, :] > zone[0]) &
                        (sami_out.glon[apex_ind, 0, :] < zone[1]))
     print(sami_out.glon[apex_ind, 0, lon_ind])
     sami_out = sami_out.isel(nlt=lon_ind)
     nc_flist = []
 
     for var_file in mod_vars:
-        buff = '{0}{1}'.format(sami3path, var_file)
+        buff = os.path.join(sami3path, var_file)
         varname = var_file[:-5]
         print(varname)
         var_fname = ''.join([sami3path, 'trimmed_', varname, '.nc'])
@@ -212,20 +250,20 @@ def combine_in_netcdf(sami3path, sz, mod_vars, zone= (270, 310)):
     sami_out = sami_out.rename({'u1': 'u4'})
 
     try:
-        with open('{0}{1}'.format(sami3path, 'SAMI3_list')) as f:
+        with open(os.path.join(sami3path, 'SAMI3_list')) as f:
             lines = f.readlines()
             date = date = lines[1][11:21]
             day = dt.datetime.strptime(date, '%Y/%m/%d').timetuple().tm_yday
             year = dt.datetime.strptime(date, '%Y/%m/%d').year
     except FileNotFoundError:
         try:
-            with open('{0}{1}'.format(sami3path, 'namelist_input.dat')) as f:
+            with open(os.path.join(sami3path, 'namelist_input.dat')) as f:
                 lines = f.readlines()
                 year = int(lines[0])
                 date = ','.join([lines[0][:-1], lines[1][:-1]])
                 day = dt.datetime.strptime(date, '%Y,%m,%d').timetuple().tm_yday
         except FileNotFoundError:
-            with open('{0}{1}'.format(sami3path, 'sami3-3.22.namelist')) as f:
+            with open(os.path.join(sami3path, 'sami3-3.22.namelist')) as f:
                 lines = f.readlines()
                 year = int(lines[11][10:14])
                 day = int(lines[12][8:].split(',')[0])
@@ -238,5 +276,7 @@ def combine_in_netcdf(sami3path, sz, mod_vars, zone= (270, 310)):
                                 '_', str(lon), '.nc']))
 
 download_run(SAMI3PATH, RUN_NAME, MOD_VARS, MET_VARS)
-combine_in_netcdf(SAMI3PATH, SZ, MOD_VARS)
-#combine_regridded_netcdf(SAMI3PATH, RG_SZ, REG_VARS)
+download_run(SAMI3PATH, RUN_NAME, REG_VARS, MET_VARS)
+# combine_in_netcdf(SAMI3PATH, SZ, MOD_VARS)
+# combine_regridded_netcdf(SAMI3PATH, RG_SZ, REG_VARS)
+combine_global_regridded_netcdf(SAMI3PATH, RG_SZ, {})
