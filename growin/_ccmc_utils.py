@@ -2,17 +2,38 @@ import datetime as dt
 import json
 import numpy as np
 import os
+import pandas as pd
 import psutil
 import sys
 import urllib.request
 import xarray as xr
 
-RUN_NAME = 'SAMI3-TIEGCM-01_2023-03-TP-01_081823_IT_1'
+storm = 'march2023'
+if storm == 'feb2022':
+    RUN_NAME = 'SAMI3-TIEGCM-01_2022-02-TP-01_082823_IT_1'
+    NUM_DAYS = 3
+    start_date = dt.datetime(2022, 2, 2)
+elif storm == 'march2023':
+    RUN_NAME = 'SAMI3-TIEGCM-01_2023-03-TP-01_081823_IT_1'
+    NUM_DAYS = 6
+    start_date = dt.datetime(2023, 3, 20)
+elif storm == 'april2023':
+    RUN_NAME = 'SAMI3-TIEGCM-01_2023-04-TP-01_011724_IT_1'
+    NUM_DAYS = 5
+    start_date = dt.datetime(2023, 4, 21)
 # RUN_NAME = sys.argv[1]
 #if RUN_NAME[0:3] != 'Jon':
 #    print(' '.join(['invalid run name:', RUN_NAME]))
-SAMI3PATH = ''.join(['/Volumes/Expansion/data/sami3/', RUN_NAME, '/'])
-NUM_DAYS=6
+
+
+laptop = True
+if laptop:
+    prefix = '/Users/jklenzin'
+else:
+    prefix = '/Volumes/Expansion'
+SAMI3PATH = ''.join([prefix, '/data/sami3/', RUN_NAME, '/'])
+
+# NUM_DAYS=6
 # this is the size for the iconTIEGCM runs sz = [304, 124, 96, 25]
 SZ = [304, 124, 96, 1+96*NUM_DAYS]
 RG_SZ = [100,100,96,1+96*NUM_DAYS]
@@ -159,25 +180,38 @@ def combine_global_regridded_netcdf(sami3path, sz, reg_vars):
 
     time = np.loadtxt(sami3path + 'time.dat')
     ut = time[:, 1] + time[:, 2] / 60 + time[:, 3] / 3600
+    delta_day = np.floor(time[:,4]/24)
+    num_vals = len(delta_day)
+    time = pd.to_datetime({'year': np.ones(num_vals) * start_date.year,
+                           'month': np.ones(num_vals) * start_date.month,
+                           'day': np.ones(num_vals) * start_date.day + delta_day,
+                           'hour': time[:, 1],
+                           'minute': time[:, 2],
+                           'second': time[:, 3]})
+
     glat = os.path.join(sami3path, 'glat0.dat')
     glon = os.path.join(sami3path, 'glon0.dat')
     zalt = os.path.join(sami3path, 'zalt0.dat')
+
     hmf2 = os.path.join(sami3path, 'hmf2u.dat')
     tec = os.path.join(sami3path, 'tecu.dat')
-    lat_coord = sami3data_grid(glat, sz[0:3])
-    lon_coord = sami3data_grid(glon, sz[0:3])
-    zalt_coord = sami3data_grid(zalt, sz[0:3])
+
+    # Reshape and drop superfluous dimension
+    lat_coord = sami3data_grid(glat, sz[0:3])[:, 0, :]
+    lon_coord = sami3data_grid(glon, sz[0:3])[:, 0, :]
+    zalt_coord = sami3data_grid(zalt, sz[0:3])[:, 0, :]
     hmf2_var = sami3data_grid(hmf2, sz[1:4])
     tec_var = sami3data_grid(tec, sz[1:4])
-    sami_out = xr.Dataset(coords=dict(ut=(['nt'], ut),
-                                      glat=(['nx', 'ny', 'nl'], lat_coord),
-                                      glon=(['nx', 'ny', 'nl'], lon_coord),
-                                      zalt=(['nx', 'ny', 'nl'], zalt_coord)),
+
+    sami_out = xr.Dataset(coords=dict(time=(['nt'], time),
+                                      glat=(['nx', 'nl'], lat_coord),
+                                      glon=(['nx', 'nl'], lon_coord),
+                                      zalt=(['nx', 'nl'], zalt_coord)),
                           data_vars=dict(hmf2=(['nx', 'nl', 'nt'], hmf2_var),
                                          tec=(['nx', 'nl', 'nt'], tec_var)))
     sami_out.to_netcdf(os.path.join(sami3path, 'sami3_reg_merged.nc'))
 
-    return
+    return sami_out
 
 
 
@@ -275,8 +309,10 @@ def combine_in_netcdf(sami3path, sz, mod_vars, zone= (270, 310)):
     sami_out.to_netcdf(''.join([sami3path, 'sami3_merged_', date_str,
                                 '_', str(lon), '.nc']))
 
-download_run(SAMI3PATH, RUN_NAME, MOD_VARS, MET_VARS)
+# download_run(SAMI3PATH, RUN_NAME, MOD_VARS, MET_VARS)
 download_run(SAMI3PATH, RUN_NAME, REG_VARS, MET_VARS)
 # combine_in_netcdf(SAMI3PATH, SZ, MOD_VARS)
 # combine_regridded_netcdf(SAMI3PATH, RG_SZ, REG_VARS)
-combine_global_regridded_netcdf(SAMI3PATH, RG_SZ, {})
+sami_out = combine_global_regridded_netcdf(SAMI3PATH, RG_SZ, {})
+# Sort out arrays by glon
+sami_out = sami_out.sortby(sami_out['glon'][0,:])
