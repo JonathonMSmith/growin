@@ -8,10 +8,10 @@ import sys
 import urllib.request
 import xarray as xr
 
-storm = 'march2023'
+storm = 'april2023'
 if storm == 'feb2022':
     RUN_NAME = 'SAMI3-TIEGCM-01_2022-02-TP-01_082823_IT_1'
-    NUM_DAYS = 3
+    NUM_DAYS = 5
     start_date = dt.datetime(2022, 2, 2)
 elif storm == 'march2023':
     RUN_NAME = 'SAMI3-TIEGCM-01_2023-03-TP-01_081823_IT_1'
@@ -316,3 +316,6 @@ download_run(SAMI3PATH, RUN_NAME, REG_VARS, MET_VARS)
 sami_out = combine_global_regridded_netcdf(SAMI3PATH, RG_SZ, {})
 # Sort out arrays by glon
 sami_out = sami_out.sortby(sami_out['glon'][0,:])
+
+# Save to netcdf
+sami_out.to_netcdf('_'.join(("./sami3", storm, "storm.nc")))
